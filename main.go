@@ -69,10 +69,15 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("➡️ /sales called")
 
-	rows, err := db.Query(`
+	// ⏱️ IMPORTANT: timeout for pooler
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, `
 		SELECT sale_id, customer_name, product_name, quantity, price, created_date
 		FROM public.sales
 		ORDER BY created_date DESC
+		LIMIT 100
 	`)
 	if err != nil {
 		log.Println("❌ DB QUERY ERROR:", err)
@@ -88,15 +93,14 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var s Sale
-		err := rows.Scan(
+		if err := rows.Scan(
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
 			&s.Quantity,
 			&s.Price,
 			&s.CreatedDate,
-		)
-		if err != nil {
+		); err != nil {
 			log.Println("❌ ROW SCAN ERROR:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]string{
@@ -116,9 +120,10 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("✅ Returning", len(sales), "sales")
+	log.Println("✅ Returning", len(sales), "rows")
 	json.NewEncoder(w).Encode(sales)
 }
+
 
 
 // ---------- CREATE SALE ----------
