@@ -26,12 +26,12 @@ func main() {
 	var err error
 
 	// ✅ ONLY DB_CONN (no DATABASE_URL anywhere)
-	dbConn := os.Getenv("DB_CONN")
-	if dbConn == "" {
+	dbURL := os.Getenv("DB_CONN")
+	if dbURL == "" {
 		log.Fatal("DB_CONN environment variable not set")
 	}
 
-	db, err = sql.Open("postgres", dbConn)
+	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("DB open error:", err)
 	}
