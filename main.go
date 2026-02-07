@@ -65,39 +65,61 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 // ---------- GET SALES ----------
 func getSales(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
+	w.Header().Set("Content-Type", "application/json")
+
+	log.Println("➡️ /sales called")
 
 	rows, err := db.Query(`
 		SELECT sale_id, customer_name, product_name, quantity, price, created_date
-		FROM sales
+		FROM public.sales
 		ORDER BY created_date DESC
 	`)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		log.Println("❌ DB QUERY ERROR:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
 		return
 	}
 	defer rows.Close()
 
-	var sales []Sale
+	sales := make([]Sale, 0)
 
 	for rows.Next() {
 		var s Sale
-		if err := rows.Scan(
+		err := rows.Scan(
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
 			&s.Quantity,
 			&s.Price,
 			&s.CreatedDate,
-		); err != nil {
-			http.Error(w, err.Error(), 500)
+		)
+		if err != nil {
+			log.Println("❌ ROW SCAN ERROR:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"error": err.Error(),
+			})
 			return
 		}
 		sales = append(sales, s)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	if err := rows.Err(); err != nil {
+		log.Println("❌ ROWS ERROR:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	log.Println("✅ Returning", len(sales), "sales")
 	json.NewEncoder(w).Encode(sales)
 }
+
 
 // ---------- CREATE SALE ----------
 func createSale(w http.ResponseWriter, r *http.Request) {
