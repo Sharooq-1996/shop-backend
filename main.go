@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
@@ -11,6 +12,7 @@ import (
 
 	_ "github.com/lib/pq"
 )
+
 
 type Sale struct {
 	SaleID       int       `json:"saleId"`
