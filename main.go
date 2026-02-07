@@ -27,31 +27,27 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// ✅ Read & sanitize DB connection string
 	dbURL := strings.TrimSpace(os.Getenv("DB_CONN"))
 	if dbURL == "" {
-		log.Fatal("DB_CONN environment variable not set")
+		log.Fatal("DB_CONN not set")
 	}
 
-	// ✅ Open DB (NO Ping for pooler)
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("DB open error:", err)
 	}
 
-	// ✅ VERY IMPORTANT for Supabase session pooler
+	// ✅ REQUIRED for Supabase Session Pooler
 	db.SetMaxOpenConns(5)
-	db.SetMaxIdleConns(0)
+	db.SetMaxIdleConns(2)
 	db.SetConnMaxLifetime(30 * time.Second)
 
-	log.Println("✅ Database connection initialized (lazy)")
+	log.Println("✅ Database initialized (PgBouncer-safe)")
 
-	// Routes
-	http.HandleFunc("/health", healthCheck)
+	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
-	// Port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -61,22 +57,18 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-// ---------- HEALTH CHECK ----------
-func healthCheck(w http.ResponseWriter, r *http.Request) {
+func health(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
-// ---------- GET SALES ----------
 func getSales(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
 	w.Header().Set("Content-Type", "application/json")
 
 	log.Println("➡️ /sales called")
 
-	// ✅ Use request context + timeout (NOT Background)
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	rows, err := db.QueryContext(ctx, `
@@ -89,13 +81,13 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		log.Println("❌ DB QUERY ERROR:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "database query failed",
+			"error": err.Error(),
 		})
 		return
 	}
 	defer rows.Close()
 
-	sales := make([]Sale, 0)
+	sales := []Sale{}
 
 	for rows.Next() {
 		var s Sale
@@ -110,7 +102,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 			log.Println("❌ ROW SCAN ERROR:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]string{
-				"error": "row scan failed",
+				"error": err.Error(),
 			})
 			return
 		}
@@ -118,43 +110,40 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Println("❌ ROWS ITERATION ERROR:", err)
+		log.Println("❌ ROWS ERROR:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "rows iteration failed",
+			"error": err.Error(),
 		})
 		return
 	}
 
-	log.Println("✅ Returning", len(sales), "rows")
+	log.Println("✅ Rows returned:", len(sales))
 	json.NewEncoder(w).Encode(sales)
 }
 
-// ---------- CREATE SALE ----------
 func createSale(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
 
 	if r.Method == http.MethodOptions {
 		return
 	}
-
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", 405)
 		return
 	}
 
 	var sale Sale
 	if err := json.NewDecoder(r.Body).Decode(&sale); err != nil {
-		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		http.Error(w, err.Error(), 400)
 		return
 	}
 
-	// ✅ Use context + timeout for INSERT too
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO public.sales (customer_name, product_name, quantity, price)
+		INSERT INTO sales (customer_name, product_name, quantity, price)
 		VALUES ($1, $2, $3, $4)
 	`,
 		sale.CustomerName,
@@ -164,8 +153,7 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		log.Println("❌ INSERT ERROR:", err)
-		http.Error(w, "Insert failed", http.StatusInternalServerError)
+		http.Error(w, err.Error(), 500)
 		return
 	}
 
@@ -174,7 +162,6 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ---------- CORS ----------
 func enableCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
