@@ -1,6 +1,7 @@
 module shopapp-backend
 
-go 1.25.1
+go 1.25
+
 
 require (
 	github.com/denisenkom/go-mssqldb v0.12.3 // indirect
