@@ -11,7 +11,14 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-// Sale model (matches DB exactly)
+/*
+ENV VARIABLES REQUIRED (Render / Cloud):
+--------------------------------------
+PORT     -> auto provided by Render
+DB_CONN  -> your database connection string
+*/
+
+// ---------- DATA MODEL ----------
 type Sale struct {
 	SaleID       int       `json:"saleId"`
 	CustomerName string    `json:"customerName"`
@@ -23,11 +30,15 @@ type Sale struct {
 
 var db *sql.DB
 
+// ---------- MAIN ----------
 func main() {
 	var err error
 
-	// DB connection string (keep as-is for now)
-	connString := "server=localhost;user id=sa;password=Sharooq@1996;database=ShopDB"
+	// 🔹 Read DB connection from ENV (cloud-safe)
+	connString := os.Getenv("DB_CONN")
+	if connString == "" {
+		log.Fatal("❌ DB_CONN environment variable not set")
+	}
 
 	db, err = sql.Open("sqlserver", connString)
 	if err != nil {
@@ -38,29 +49,45 @@ func main() {
 		log.Fatal("DB ping failed:", err)
 	}
 
-	log.Println("✅ Connected to SQL Server")
+	log.Println("✅ Database connected")
 
-	http.HandleFunc("/sales", getSales)
-	http.HandleFunc("/sales/create", createSale)
+	// Routes
+	http.HandleFunc("/sales", withCORS(getSales))
+	http.HandleFunc("/sales/create", withCORS(createSale))
 
-	// ✅ REQUIRED FOR CLOUD (Render / Railway)
+	// 🔹 PORT required by Render
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080" // local default
+		port = "8080" // local fallback
 	}
 
-	log.Println("🚀 Go backend running on port", port)
+	log.Println("🚀 Server running on port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-// 🔹 GET all sales
+// ---------- CORS MIDDLEWARE ----------
+func withCORS(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		handler(w, r)
+	}
+}
+
+// ---------- GET SALES ----------
 func getSales(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	rows, err := db.Query(`
 		SELECT SaleId, CustomerName, ProductName, Quantity, Price, CreatedDate
-		FROM sales
+		FROM Sales
 		ORDER BY CreatedDate DESC
 	`)
 	if err != nil {
@@ -73,30 +100,26 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var s Sale
-		rows.Scan(
+		if err := rows.Scan(
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
 			&s.Quantity,
 			&s.Price,
 			&s.CreatedDate,
-		)
+		); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		sales = append(sales, s)
 	}
 
 	json.NewEncoder(w).Encode(sales)
 }
 
-// 🔹 INSERT sale
+// ---------- CREATE SALE ----------
 func createSale(w http.ResponseWriter, r *http.Request) {
-	// CORS
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-
-	if r.Method == http.MethodOptions {
-		return
-	}
+	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -105,12 +128,12 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 
 	var sale Sale
 	if err := json.NewDecoder(r.Body).Decode(&sale); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	_, err := db.Exec(`
-		INSERT INTO sales (CustomerName, ProductName, Quantity, Price)
+		INSERT INTO Sales (CustomerName, ProductName, Quantity, Price)
 		VALUES (@p1, @p2, @p3, @p4)
 	`,
 		sale.CustomerName,
