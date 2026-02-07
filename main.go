@@ -13,7 +13,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-
 type Sale struct {
 	SaleID       int       `json:"saleId"`
 	CustomerName string    `json:"customerName"`
@@ -34,11 +33,16 @@ func main() {
 		log.Fatal("DB_CONN environment variable not set")
 	}
 
-	// ✅ DO NOT Ping (pooler-safe)
+	// ✅ Open DB (NO Ping for pooler)
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("DB open error:", err)
 	}
+
+	// ✅ VERY IMPORTANT for Supabase session pooler
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(0)
+	db.SetConnMaxLifetime(30 * time.Second)
 
 	log.Println("✅ Database connection initialized (lazy)")
 
@@ -71,8 +75,8 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("➡️ /sales called")
 
-	// ⏱️ IMPORTANT: timeout for pooler
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// ✅ Use request context + timeout (NOT Background)
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
 	rows, err := db.QueryContext(ctx, `
@@ -85,7 +89,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		log.Println("❌ DB QUERY ERROR:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
+			"error": "database query failed",
 		})
 		return
 	}
@@ -106,7 +110,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 			log.Println("❌ ROW SCAN ERROR:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]string{
-				"error": err.Error(),
+				"error": "row scan failed",
 			})
 			return
 		}
@@ -114,10 +118,10 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Println("❌ ROWS ERROR:", err)
+		log.Println("❌ ROWS ITERATION ERROR:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
+			"error": "rows iteration failed",
 		})
 		return
 	}
@@ -125,8 +129,6 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	log.Println("✅ Returning", len(sales), "rows")
 	json.NewEncoder(w).Encode(sales)
 }
-
-
 
 // ---------- CREATE SALE ----------
 func createSale(w http.ResponseWriter, r *http.Request) {
@@ -137,18 +139,22 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var sale Sale
 	if err := json.NewDecoder(r.Body).Decode(&sale); err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
 		return
 	}
 
-	_, err := db.Exec(`
-		INSERT INTO sales (customer_name, product_name, quantity, price)
+	// ✅ Use context + timeout for INSERT too
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO public.sales (customer_name, product_name, quantity, price)
 		VALUES ($1, $2, $3, $4)
 	`,
 		sale.CustomerName,
@@ -158,7 +164,8 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		log.Println("❌ INSERT ERROR:", err)
+		http.Error(w, "Insert failed", http.StatusInternalServerError)
 		return
 	}
 
