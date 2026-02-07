@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -25,26 +26,26 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// ✅ ONLY DB_CONN (no DATABASE_URL anywhere)
-	dbURL := os.Getenv("DB_CONN")
+	// ✅ Read & sanitize DB connection string
+	dbURL := strings.TrimSpace(os.Getenv("DB_CONN"))
 	if dbURL == "" {
 		log.Fatal("DB_CONN environment variable not set")
 	}
 
+	// ✅ DO NOT Ping (pooler-safe)
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("DB open error:", err)
 	}
 
-	if err = db.Ping(); err != nil {
-		log.Fatal("DB ping failed:", err)
-	}
+	log.Println("✅ Database connection initialized (lazy)")
 
-	log.Println("✅ Connected to Supabase PostgreSQL")
-
+	// Routes
+	http.HandleFunc("/health", healthCheck)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
+	// Port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -52,6 +53,13 @@ func main() {
 
 	log.Println("🚀 Server running on port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// ---------- HEALTH CHECK ----------
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
 
 // ---------- GET SALES ----------
@@ -73,14 +81,17 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var s Sale
-		rows.Scan(
+		if err := rows.Scan(
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
 			&s.Quantity,
 			&s.Price,
 			&s.CreatedDate,
-		)
+		); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 		sales = append(sales, s)
 	}
 
