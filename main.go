@@ -25,13 +25,13 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// ✅ Read DB connection from environment (Render / local)
-	connString := os.Getenv("DB_CONN")
-	if connString == "" {
+	// ✅ ONLY DB_CONN (no DATABASE_URL anywhere)
+	dbConn := os.Getenv("DB_CONN")
+	if dbConn == "" {
 		log.Fatal("DB_CONN environment variable not set")
 	}
 
-	db, err = sql.Open("postgres", connString)
+	db, err = sql.Open("postgres", dbConn)
 	if err != nil {
 		log.Fatal("DB open error:", err)
 	}
@@ -45,7 +45,6 @@ func main() {
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
-	// ✅ Render provides PORT automatically
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -57,7 +56,7 @@ func main() {
 
 // ---------- GET SALES ----------
 func getSales(w http.ResponseWriter, r *http.Request) {
-	enableCORS(&w)
+	enableCORS(w)
 
 	rows, err := db.Query(`
 		SELECT sale_id, customer_name, product_name, quantity, price, created_date
@@ -65,7 +64,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		ORDER BY created_date DESC
 	`)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), 500)
 		return
 	}
 	defer rows.Close()
@@ -91,20 +90,20 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 // ---------- CREATE SALE ----------
 func createSale(w http.ResponseWriter, r *http.Request) {
-	enableCORS(&w)
+	enableCORS(w)
 
 	if r.Method == http.MethodOptions {
 		return
 	}
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", 405)
 		return
 	}
 
 	var sale Sale
 	if err := json.NewDecoder(r.Body).Decode(&sale); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), 400)
 		return
 	}
 
@@ -119,7 +118,7 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), 500)
 		return
 	}
 
@@ -129,8 +128,8 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------- CORS ----------
-func enableCORS(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+func enableCORS(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 }
