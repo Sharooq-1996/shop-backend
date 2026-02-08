@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sales Report - Ayan Watch and Electronics</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Sales – Ayan Watch and Electronics</title>
 
     <style>
         body {
             font-family: Arial, sans-serif;
             background:
-              linear-gradient(rgba(238,242,243,0.92), rgba(238,242,243,0.92)),
-              url("logo.png") center/300px no-repeat fixed;
+              linear-gradient(
+                rgba(238,242,243,0.75),
+                rgba(238,242,243,0.75)
+              ),
+              url("logo.png") center/420px no-repeat fixed;
             padding: 20px;
         }
 
+        /* ---------- HEADER ---------- */
         .shop-header {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .shop-header img {
-            height: 55px;
+            height: 60px;
         }
 
         .shop-name {
@@ -31,13 +34,14 @@
             color: #1f7ae0;
         }
 
+        /* ---------- MAIN CARD ---------- */
         .container {
-            background: white;
+            background: rgba(255,255,255,0.97);
             padding: 25px;
             max-width: 1200px;
             margin: auto;
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
 
         h2 {
@@ -54,8 +58,10 @@
         }
 
         .form-grid input {
-            padding: 10px;
+            padding: 12px;
             font-size: 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
         }
 
         .form-actions {
@@ -63,33 +69,34 @@
         }
 
         .form-actions button {
-            padding: 10px 30px;
+            padding: 12px 35px;
             font-size: 16px;
             background: #28a745;
             color: white;
             border: none;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 6px;
         }
 
         /* ---------- SUMMARY ---------- */
         .summary {
             display: flex;
             gap: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
 
         .box {
             flex: 1;
             background: #f1f7ff;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 18px;
+            border-radius: 10px;
             text-align: center;
             font-size: 18px;
             font-weight: bold;
         }
 
+        /* ---------- TABLE ---------- */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -98,7 +105,7 @@
 
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 9px;
             text-align: center;
         }
 
@@ -107,10 +114,15 @@
             color: white;
         }
 
-        /* ---------- CHART WRAPPER ---------- */
-        .chart-wrapper {
-            height: 220px;   /* controls overall chart height */
-            margin-top: 20px;
+        /* ---------- MOBILE ---------- */
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .shop-name {
+                font-size: 22px;
+            }
         }
     </style>
 </head>
@@ -143,8 +155,14 @@
     <h2>Sales Report</h2>
 
     <div class="summary">
-        <div class="box">Total Sales Count<br><span id="count">0</span></div>
-        <div class="box">Total Sales Amount ₹<br><span id="amount">0</span></div>
+        <div class="box">
+            Total Sales Count<br>
+            <span id="count">0</span>
+        </div>
+        <div class="box">
+            Total Sales Amount ₹<br>
+            <span id="amount">0</span>
+        </div>
     </div>
 
     <table>
@@ -161,14 +179,9 @@
         <tbody id="salesBody"></tbody>
     </table>
 
-    <div class="chart-wrapper">
-        <canvas id="chart"></canvas>
-    </div>
 </div>
 
 <script>
-let chartInstance = null;
-
 function loadSales() {
     fetch("/sales")
         .then(r => r.json())
@@ -178,7 +191,6 @@ function loadSales() {
 
             const tbody = document.getElementById("salesBody");
             tbody.innerHTML = "";
-            const daily = {};
 
             data.forEach(s => {
                 total += s.price * s.quantity;
@@ -192,45 +204,9 @@ function loadSales() {
                     <td>${new Date(s.createdDate).toLocaleString("en-IN")}</td>
                   </tr>
                 `;
-                const d = new Date(s.createdDate).toLocaleDateString("en-IN");
-                daily[d] = (daily[d] || 0) + s.price * s.quantity;
             });
 
             document.getElementById("amount").innerText = total.toFixed(2);
-
-            if (chartInstance) chartInstance.destroy();
-
-            chartInstance = new Chart(document.getElementById("chart"), {
-                type: "bar",
-                data: {
-                    labels: Object.keys(daily),
-                    datasets: [{
-                        label: "Daily Sales ₹",
-                        data: Object.values(daily),
-                        backgroundColor: "#1f7ae0",
-                        borderRadius: 6,
-                        barThickness: 30,
-                        maxBarThickness: 35
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: "top"
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: v => "₹" + v
-                            }
-                        }
-                    }
-                }
-            });
         });
 }
 
