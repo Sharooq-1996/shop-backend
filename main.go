@@ -42,12 +42,12 @@ func main() {
 		log.Fatal("❌ DB open error:", err)
 	}
 
-	// Safe pool settings for Render Free
-	db.SetMaxOpenConns(5)
-	db.SetMaxIdleConns(2)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// Safe pool settings for Render Free tier
+	db.SetMaxOpenConns(3)
+	db.SetMaxIdleConns(0)
+	db.SetConnMaxLifetime(2 * time.Minute)
 
-	// 🔥 AUTO CREATE TABLE
+	// Auto-create table
 	ensureTables()
 
 	log.Println("✅ Database connected & tables ready")
@@ -57,8 +57,9 @@ func main() {
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
-	// 🔥 Serve frontend (HTML)
-	http.Handle("/", http.FileServer(http.Dir("./public")))
+	// ✅ Serve frontend from static folder
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/", fs)
 
 	// Render port
 	port := os.Getenv("PORT")
