@@ -45,7 +45,7 @@
             margin-bottom: 15px;
         }
 
-        /* ---------- FORM LAYOUT ---------- */
+        /* ---------- FORM ---------- */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -106,6 +106,12 @@
             background: #1f7ae0;
             color: white;
         }
+
+        /* ---------- CHART WRAPPER ---------- */
+        .chart-wrapper {
+            height: 220px;   /* controls overall chart height */
+            margin-top: 20px;
+        }
     </style>
 </head>
 
@@ -121,7 +127,6 @@
 
     <h2>Add Daily Sale</h2>
 
-    <!-- STEP-BY-STEP FORM (2 PER ROW) -->
     <div class="form-grid">
         <input id="customerName" placeholder="Customer Name">
         <input id="productName" placeholder="Product Name">
@@ -156,53 +161,77 @@
         <tbody id="salesBody"></tbody>
     </table>
 
-    <canvas id="chart" height="60"></canvas>
+    <div class="chart-wrapper">
+        <canvas id="chart"></canvas>
+    </div>
 </div>
 
 <script>
-const BASE_URL = "";
+let chartInstance = null;
 
 function loadSales() {
     fetch("/sales")
-      .then(r => r.json())
-      .then(data => {
-        let total = 0;
-        document.getElementById("count").innerText = data.length;
+        .then(r => r.json())
+        .then(data => {
+            let total = 0;
+            document.getElementById("count").innerText = data.length;
 
-        const tbody = document.getElementById("salesBody");
-        tbody.innerHTML = "";
-        const daily = {};
+            const tbody = document.getElementById("salesBody");
+            tbody.innerHTML = "";
+            const daily = {};
 
-        data.forEach(s => {
-            total += s.price * s.quantity;
-            tbody.innerHTML += `
-              <tr>
-                <td>${s.saleId}</td>
-                <td>${s.customerName}</td>
-                <td>${s.productName}</td>
-                <td>${s.quantity}</td>
-                <td>${s.price}</td>
-                <td>${new Date(s.createdDate).toLocaleString("en-IN")}</td>
-              </tr>
-            `;
-            const d = new Date(s.createdDate).toLocaleDateString("en-IN");
-            daily[d] = (daily[d] || 0) + s.price * s.quantity;
+            data.forEach(s => {
+                total += s.price * s.quantity;
+                tbody.innerHTML += `
+                  <tr>
+                    <td>${s.saleId}</td>
+                    <td>${s.customerName}</td>
+                    <td>${s.productName}</td>
+                    <td>${s.quantity}</td>
+                    <td>${s.price}</td>
+                    <td>${new Date(s.createdDate).toLocaleString("en-IN")}</td>
+                  </tr>
+                `;
+                const d = new Date(s.createdDate).toLocaleDateString("en-IN");
+                daily[d] = (daily[d] || 0) + s.price * s.quantity;
+            });
+
+            document.getElementById("amount").innerText = total.toFixed(2);
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(document.getElementById("chart"), {
+                type: "bar",
+                data: {
+                    labels: Object.keys(daily),
+                    datasets: [{
+                        label: "Daily Sales ₹",
+                        data: Object.values(daily),
+                        backgroundColor: "#1f7ae0",
+                        borderRadius: 6,
+                        barThickness: 30,
+                        maxBarThickness: 35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: "top"
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: v => "₹" + v
+                            }
+                        }
+                    }
+                }
+            });
         });
-
-        document.getElementById("amount").innerText = total.toFixed(2);
-
-        new Chart(document.getElementById("chart"), {
-            type: "bar",
-            data: {
-                labels: Object.keys(daily),
-                datasets: [{
-                    label: "Daily Sales ₹",
-                    data: Object.values(daily),
-                    backgroundColor: "#1f7ae0"
-                }]
-            }
-        });
-      });
 }
 
 function addSale() {
