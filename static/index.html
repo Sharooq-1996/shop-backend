@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sales Report - Ayan Watch and Electronics</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2f3;
+            padding: 20px;
+        }
+
+        .shop-name {
+            text-align: center;
+            font-size: 30px;
+            font-weight: bold;
+            color: #1f7ae0;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        h2 { text-align: center; }
+
+        .summary {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .box {
+            flex: 1;
+            background: #f1f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #1f7ae0;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="shop-name">Ayan Watch and Electronics</div>
+
+<div class="container">
+    <h2>Daily Sales</h2>
+
+    <div class="summary">
+        <div class="box">Total Sales<br><span id="count">0</span></div>
+        <div class="box">Total Amount ₹<br><span id="amount">0</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="salesBody"></tbody>
+    </table>
+
+    <canvas id="chart" height="120"></canvas>
+</div>
+
+<script>
+fetch("/sales")
+  .then(r => r.json())
+  .then(data => {
+    let total = 0;
+    document.getElementById("count").innerText = data.length;
+
+    const tbody = document.getElementById("salesBody");
+    const daily = {};
+
+    data.forEach(s => {
+        total += s.price * s.quantity;
+        tbody.innerHTML += `
+          <tr>
+            <td>${s.saleId}</td>
+            <td>${s.customerName}</td>
+            <td>${s.productName}</td>
+            <td>${s.quantity}</td>
+            <td>${s.price}</td>
+            <td>${new Date(s.createdDate).toLocaleString("en-IN")}</td>
+          </tr>
+        `;
+        const d = new Date(s.createdDate).toLocaleDateString("en-IN");
+        daily[d] = (daily[d] || 0) + s.price * s.quantity;
+    });
+
+    document.getElementById("amount").innerText = total.toFixed(2);
+
+    new Chart(document.getElementById("chart"), {
+        type: "bar",
+        data: {
+            labels: Object.keys(daily),
+            datasets: [{
+                label: "Daily Sales ₹",
+                data: Object.values(daily),
+                backgroundColor: "#1f7ae0"
+            }]
+        }
+    });
+  });
+</script>
+
+</body>
+</html>

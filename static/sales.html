@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sales Report - Ayan Watch and Electronics</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2f3;
+            padding: 20px;
+        }
+
+        .shop-name {
+            text-align: center;
+            font-size: 30px;
+            font-weight: bold;
+            color: #1f7ae0;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        /* 🔹 Entry form */
+        .entry {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .entry input, .entry button {
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        .entry button {
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* 🔹 Summary */
+        .summary {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .box {
+            flex: 1;
+            background: #f1f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* 🔹 Filters */
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filters input, .filters button {
+            padding: 8px;
+        }
+
+        .filters button {
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .filters button.print {
+            background: #007bff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #1f7ae0;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        canvas {
+            margin-top: 25px;
+        }
+
+        @media print {
+            button, input {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="shop-name">
+    Ayan Watch and Electronics
+</div>
+
+<div class="container">
+
+    <h2>Add Daily Sale</h2>
+
+    <!-- 🔹 Sales Entry -->
+    <div class="entry">
+        <input id="customer" placeholder="Customer Name">
+        <input id="product" placeholder="Product Name">
+        <input id="qty" type="number" placeholder="Qty">
+        <input id="price" type="number" placeholder="Price">
+        <button onclick="addSale()">Add Sale</button>
+    </div>
+
+    <hr>
+
+    <h2>Sales Report</h2>
+
+    <!-- 🔹 Summary -->
+    <div class="summary">
+        <div class="box">
+            Total Sales Count<br>
+            <span id="totalCount">0</span>
+        </div>
+        <div class="box">
+            Total Sales Amount (₹)<br>
+            <span id="totalAmount">0</span>
+        </div>
+    </div>
+
+    <!-- 🔹 Filters -->
+    <div class="filters">
+        <label>From:
+            <input type="date" id="fromDate">
+        </label>
+
+        <label>To:
+            <input type="date" id="toDate">
+        </label>
+
+        <button onclick="loadSales()">Apply Filter</button>
+        <button class="print" onclick="window.print()">Print</button>
+    </div>
+
+    <!-- 🔹 Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="salesBody"></tbody>
+    </table>
+
+    <!-- 🔹 Chart -->
+    <canvas id="salesChart" height="120"></canvas>
+</div>
+
+<script>
+let chart;
+
+/* 🔹 API (same server, no localhost) */
+const API = "";
+
+/* IST format */
+function formatDateTime(d) {
+    return new Date(d).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+}
+function formatDateOnly(d) {
+    return new Date(d).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+}
+
+/* 🔹 Add Sale */
+function addSale() {
+    fetch(API + "/sales/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            customerName: customer.value,
+            productName: product.value,
+            quantity: Number(qty.value),
+            price: Number(price.value)
+        })
+    }).then(() => {
+        customer.value = product.value = qty.value = price.value = "";
+        loadSales();
+    });
+}
+
+/* 🔹 Load Sales */
+function loadSales() {
+    fetch(API + "/sales")
+        .then(r => r.json())
+        .then(data => {
+            let tbody = salesBody;
+            tbody.innerHTML = "";
+
+            let from = fromDate.value;
+            let to = toDate.value;
+
+            let total = 0;
+            let filtered = [];
+
+            data.forEach(s => {
+                let d = new Date(s.createdDate);
+                if ((!from || d >= new Date(from)) && (!to || d <= new Date(to + "T23:59:59"))) {
+                    filtered.push(s);
+                    total += s.price * s.quantity;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${s.saleId}</td>
+                            <td>${s.customerName}</td>
+                            <td>${s.productName}</td>
+                            <td>${s.quantity}</td>
+                            <td>${s.price}</td>
+                            <td>${formatDateTime(s.createdDate)}</td>
+                        </tr>`;
+                }
+            });
+
+            totalCount.innerText = filtered.length;
+            totalAmount.innerText = total.toFixed(2);
+            drawChart(filtered);
+        });
+}
+
+function drawChart(data) {
+    let g = {};
+    data.forEach(s => {
+        let d = formatDateOnly(s.createdDate);
+        g[d] = (g[d] || 0) + s.price * s.quantity;
+    });
+
+    if (chart) chart.destroy();
+    chart = new Chart(salesChart, {
+        type: "bar",
+        data: {
+            labels: Object.keys(g),
+            datasets: [{
+                label: "Sales ₹",
+                data: Object.values(g),
+                backgroundColor: "#1f7ae0"
+            }]
+        }
+    });
+}
+
+/* Auto load */
+loadSales();
+</script>
+
+</body>
+</html>

@@ -31,37 +31,38 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// Read DB connection
+	// 🔹 Read DB connection from Render environment
 	dbURL := strings.TrimSpace(os.Getenv("DB_CONN"))
 	if dbURL == "" {
 		log.Fatal("❌ DB_CONN environment variable not set")
 	}
 
+	// 🔹 Open DB (Render PostgreSQL)
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("❌ DB open error:", err)
 	}
 
-	// Safe pool settings for Render Free tier
+	// 🔹 Safe pool settings for Render Free tier
 	db.SetMaxOpenConns(3)
 	db.SetMaxIdleConns(0)
 	db.SetConnMaxLifetime(2 * time.Minute)
 
-	// Auto-create table
+	// 🔹 Auto-create required tables
 	ensureTables()
 
 	log.Println("✅ Database connected & tables ready")
 
-	// API routes
+	// 🔹 API routes
 	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
-	// ✅ Serve frontend from static folder
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/", fs)
+	// 🔹 Serve frontend from /static folder
+	fileServer := http.FileServer(http.Dir("./static"))
+	http.Handle("/", fileServer)
 
-	// Render port
+	// 🔹 Render provides PORT
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "10000"
@@ -71,7 +72,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-/* ---------- AUTO TABLE ---------- */
+/* ---------- AUTO TABLE CREATION ---------- */
 
 func ensureTables() {
 	query := `
@@ -90,7 +91,7 @@ func ensureTables() {
 	log.Println("✅ sales table exists")
 }
 
-/* ---------- HEALTH ---------- */
+/* ---------- HEALTH CHECK ---------- */
 
 func health(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
@@ -120,6 +121,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	sales := []Sale{}
+
 	for rows.Next() {
 		var s Sale
 		if err := rows.Scan(
