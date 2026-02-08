@@ -33,15 +33,24 @@ func main() {
 
 	// 🔹 Read DB connection from Render environment
 	dbURL := strings.TrimSpace(os.Getenv("DB_CONN"))
-	if dbURL == "" {
-		log.Fatal("❌ DB_CONN environment variable not set")
-	}
+if dbURL == "" {
+	log.Fatal("❌ DB_CONN environment variable not set")
+}
 
-	// 🔹 Open DB (Render PostgreSQL)
-	db, err = sql.Open("postgres", dbURL)
-	if err != nil {
-		log.Fatal("❌ DB open error:", err)
+// Ensure sslmode=require exists
+if !strings.Contains(dbURL, "sslmode=") {
+	if strings.Contains(dbURL, "?") {
+		dbURL += "&sslmode=require"
+	} else {
+		dbURL += "?sslmode=require"
 	}
+}
+
+db, err = sql.Open("postgres", dbURL)
+if err != nil {
+	log.Fatal("❌ DB open error:", err)
+}
+
 
 	// 🔹 Safe pool settings for Render Free tier
 	db.SetMaxOpenConns(3)
