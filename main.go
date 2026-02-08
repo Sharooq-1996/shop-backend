@@ -13,6 +13,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+/* ---------- MODELS ---------- */
+
 type Sale struct {
 	SaleID       int       `json:"saleId"`
 	CustomerName string    `json:"customerName"`
@@ -24,43 +26,61 @@ type Sale struct {
 
 var db *sql.DB
 
+/* ---------- MAIN ---------- */
+
 func main() {
 	var err error
 
+	// Read DB connection string
 	dbURL := strings.TrimSpace(os.Getenv("DB_CONN"))
 	if dbURL == "" {
-		log.Fatal("DB_CONN not set")
+		log.Fatal("❌ DB_CONN environment variable not set")
 	}
+
+	// 🔴 CRITICAL: make lib/pq safe for Supabase PgBouncer
+	if !strings.Contains(dbURL, "?") {
+		dbURL += "?"
+	} else {
+		dbURL += "&"
+	}
+	dbURL += "sslmode=require&binary_parameters=yes"
 
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal("DB open error:", err)
+		log.Fatal("❌ DB open error:", err)
 	}
 
-	// ✅ REQUIRED for Supabase Session Pooler
-	db.SetMaxOpenConns(5)
-	db.SetMaxIdleConns(2)
-	db.SetConnMaxLifetime(30 * time.Second)
+	// 🔴 PgBouncer-safe pool settings
+	db.SetMaxOpenConns(3)
+	db.SetMaxIdleConns(0)
+	db.SetConnMaxLifetime(15 * time.Second)
 
-	log.Println("✅ Database initialized (PgBouncer-safe)")
+	log.Println("✅ Database initialized (PgBouncer-safe, lazy connection)")
 
+	// Routes
 	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
+	// Render uses PORT env
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "10000"
 	}
 
 	log.Println("🚀 Server running on port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
+/* ---------- HEALTH ---------- */
+
 func health(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
+
+/* ---------- GET SALES ---------- */
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
@@ -87,7 +107,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	sales := []Sale{}
+	sales := make([]Sale, 0)
 
 	for rows.Next() {
 		var s Sale
@@ -122,6 +142,8 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sales)
 }
 
+/* ---------- CREATE SALE ---------- */
+
 func createSale(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
 
@@ -129,13 +151,13 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var sale Sale
 	if err := json.NewDecoder(r.Body).Decode(&sale); err != nil {
-		http.Error(w, err.Error(), 400)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -143,7 +165,7 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO sales (customer_name, product_name, quantity, price)
+		INSERT INTO public.sales (customer_name, product_name, quantity, price)
 		VALUES ($1, $2, $3, $4)
 	`,
 		sale.CustomerName,
@@ -153,7 +175,8 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		log.Println("❌ INSERT ERROR:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -161,6 +184,8 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 		"message": "Sale added successfully",
 	})
 }
+
+/* ---------- CORS ---------- */
 
 func enableCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
