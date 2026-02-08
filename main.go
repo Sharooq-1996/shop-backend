@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -31,47 +30,43 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// 🔹 Read DB connection from Render environment
-	dbURL := strings.TrimSpace(os.Getenv("DB_CONN"))
-if dbURL == "" {
-	log.Fatal("❌ DB_CONN environment variable not set")
-}
-
-// Ensure sslmode=require exists
-if !strings.Contains(dbURL, "sslmode=") {
-	if strings.Contains(dbURL, "?") {
-		dbURL += "&sslmode=require"
-	} else {
-		dbURL += "?sslmode=require"
+	// ✅ Read DATABASE_URL from Render
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("❌ DATABASE_URL environment variable not set")
 	}
-}
 
-db, err = sql.Open("postgres", dbURL)
-if err != nil {
-	log.Fatal("❌ DB open error:", err)
-}
+	// ✅ Open DB connection
+	db, err = sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal("❌ DB open error:", err)
+	}
 
+	// ✅ Verify DB connectivity
+	if err = db.Ping(); err != nil {
+		log.Fatal("❌ DB ping failed:", err)
+	}
 
-	// 🔹 Safe pool settings for Render Free tier
+	// ✅ Safe pool settings for Render
 	db.SetMaxOpenConns(3)
 	db.SetMaxIdleConns(0)
 	db.SetConnMaxLifetime(2 * time.Minute)
 
-	// 🔹 Auto-create required tables
+	// ✅ Ensure tables exist
 	ensureTables()
 
 	log.Println("✅ Database connected & tables ready")
 
-	// 🔹 API routes
+	// ---------- ROUTES ----------
 	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
-	// 🔹 Serve frontend from /static folder
+	// ---------- STATIC FILES ----------
 	fileServer := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fileServer)
 
-	// 🔹 Render provides PORT
+	// ---------- PORT ----------
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "10000"
