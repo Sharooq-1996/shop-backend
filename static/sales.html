@@ -1,18 +1,233 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Sales Test</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: red;
-      color: white;
-      padding: 40px;
-    }
-  </style>
+    <title>Sales Report - Ayan Watch and Electronics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background:
+              linear-gradient(rgba(238,242,243,0.92), rgba(238,242,243,0.92)),
+              url("logo.png") center/300px no-repeat fixed;
+            padding: 20px;
+        }
+
+        .shop-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .shop-header img {
+            height: 55px;
+        }
+
+        .shop-name {
+            font-size: 30px;
+            font-weight: bold;
+            color: #1f7ae0;
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            max-width: 1200px;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        /* ---------- FORM LAYOUT ---------- */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-grid input {
+            padding: 10px;
+            font-size: 15px;
+        }
+
+        .form-actions {
+            text-align: center;
+        }
+
+        .form-actions button {
+            padding: 10px 30px;
+            font-size: 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        /* ---------- SUMMARY ---------- */
+        .summary {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .box {
+            flex: 1;
+            background: #f1f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #1f7ae0;
+            color: white;
+        }
+    </style>
 </head>
+
 <body>
-  <h1>SALES PAGE TEST</h1>
-  <p>If you see this RED page, sales.html is updating correctly.</p>
+
+<!-- HEADER -->
+<div class="shop-header">
+    <img src="logo.png" alt="Logo">
+    <div class="shop-name">Ayan Watch and Electronics</div>
+</div>
+
+<div class="container">
+
+    <h2>Add Daily Sale</h2>
+
+    <!-- STEP-BY-STEP FORM (2 PER ROW) -->
+    <div class="form-grid">
+        <input id="customerName" placeholder="Customer Name">
+        <input id="productName" placeholder="Product Name">
+        <input id="quantity" type="number" placeholder="Quantity">
+        <input id="price" type="number" placeholder="Price">
+    </div>
+
+    <div class="form-actions">
+        <button onclick="addSale()">Add Sale</button>
+    </div>
+
+    <hr style="margin:25px 0;">
+
+    <h2>Sales Report</h2>
+
+    <div class="summary">
+        <div class="box">Total Sales Count<br><span id="count">0</span></div>
+        <div class="box">Total Sales Amount ₹<br><span id="amount">0</span></div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody id="salesBody"></tbody>
+    </table>
+
+    <canvas id="chart" height="120"></canvas>
+</div>
+
+<script>
+const BASE_URL = "";
+
+function loadSales() {
+    fetch("/sales")
+      .then(r => r.json())
+      .then(data => {
+        let total = 0;
+        document.getElementById("count").innerText = data.length;
+
+        const tbody = document.getElementById("salesBody");
+        tbody.innerHTML = "";
+        const daily = {};
+
+        data.forEach(s => {
+            total += s.price * s.quantity;
+            tbody.innerHTML += `
+              <tr>
+                <td>${s.saleId}</td>
+                <td>${s.customerName}</td>
+                <td>${s.productName}</td>
+                <td>${s.quantity}</td>
+                <td>${s.price}</td>
+                <td>${new Date(s.createdDate).toLocaleString("en-IN")}</td>
+              </tr>
+            `;
+            const d = new Date(s.createdDate).toLocaleDateString("en-IN");
+            daily[d] = (daily[d] || 0) + s.price * s.quantity;
+        });
+
+        document.getElementById("amount").innerText = total.toFixed(2);
+
+        new Chart(document.getElementById("chart"), {
+            type: "bar",
+            data: {
+                labels: Object.keys(daily),
+                datasets: [{
+                    label: "Daily Sales ₹",
+                    data: Object.values(daily),
+                    backgroundColor: "#1f7ae0"
+                }]
+            }
+        });
+      });
+}
+
+function addSale() {
+    const sale = {
+        customerName: customerName.value,
+        productName: productName.value,
+        quantity: parseInt(quantity.value),
+        price: parseFloat(price.value)
+    };
+
+    fetch("/sales/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sale)
+    }).then(() => {
+        customerName.value = "";
+        productName.value = "";
+        quantity.value = "";
+        price.value = "";
+        loadSales();
+    });
+}
+
+loadSales();
+</script>
+
 </body>
 </html>
