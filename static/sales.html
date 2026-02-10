@@ -57,7 +57,8 @@
             margin-bottom: 20px;
         }
 
-        .form-grid input {
+        .form-grid input,
+        .form-grid select {
             padding: 12px;
             font-size: 15px;
             border-radius: 6px;
@@ -144,6 +145,12 @@
         <input id="productName" placeholder="Product Name">
         <input id="quantity" type="number" placeholder="Quantity">
         <input id="price" type="number" placeholder="Price">
+
+        <!-- ✅ NEW: PAYMENT METHOD -->
+        <select id="paymentMethod">
+            <option value="CASH">Cash</option>
+            <option value="UPI">UPI</option>
+        </select>
     </div>
 
     <div class="form-actions">
@@ -173,6 +180,7 @@
                 <th>Product</th>
                 <th>Qty</th>
                 <th>Price</th>
+                <th>Payment</th> <!-- ✅ NEW -->
                 <th>Date</th>
             </tr>
         </thead>
@@ -201,6 +209,7 @@ function loadSales() {
                     <td>${s.productName}</td>
                     <td>${s.quantity}</td>
                     <td>${s.price}</td>
+                    <td>${s.paymentMethod}</td>
                     <td>${new Date(s.createdDate).toLocaleString("en-IN")}</td>
                   </tr>
                 `;
@@ -215,7 +224,8 @@ function addSale() {
         customerName: customerName.value,
         productName: productName.value,
         quantity: parseInt(quantity.value),
-        price: parseFloat(price.value)
+        price: parseFloat(price.value),
+        paymentMethod: paymentMethod.value // ✅ NEW
     };
 
     fetch("/sales/create", {
@@ -227,6 +237,7 @@ function addSale() {
         productName.value = "";
         quantity.value = "";
         price.value = "";
+        paymentMethod.value = "CASH";
         loadSales();
     });
 }
