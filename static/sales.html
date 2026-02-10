@@ -115,6 +115,16 @@
             color: white;
         }
 
+        .print-btn {
+            padding: 6px 12px;
+            background: #6f42c1;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
         /* ---------- MOBILE ---------- */
         @media (max-width: 700px) {
             .form-grid {
@@ -181,6 +191,7 @@
                 <th>Price</th>
                 <th>Payment</th>
                 <th>Date</th>
+                <th>Print</th>
             </tr>
         </thead>
         <tbody id="salesBody"></tbody>
@@ -201,23 +212,28 @@ function loadSales() {
             const tbody = document.getElementById("salesBody");
             tbody.innerHTML = "";
 
-            data.forEach(s => {
-                const saleDate = new Date(s.createdDate).toISOString().split("T")[0];
+            data.forEach(sale => {
+                const saleDate = new Date(sale.createdDate).toISOString().split("T")[0];
 
-                // ✅ SHOW ONLY TODAY'S SALES
                 if (saleDate === today) {
                     count++;
-                    total += s.price * s.quantity;
+                    total += sale.price * sale.quantity;
 
                     tbody.innerHTML += `
                       <tr>
-                        <td>${s.saleId}</td>
-                        <td>${s.customerName}</td>
-                        <td>${s.productName}</td>
-                        <td>${s.quantity}</td>
-                        <td>${s.price}</td>
-                        <td>${s.paymentMethod}</td>
-                        <td>${new Date(s.createdDate).toLocaleString("en-IN")}</td>
+                        <td>${sale.saleId}</td>
+                        <td>${sale.customerName}</td>
+                        <td>${sale.productName}</td>
+                        <td>${sale.quantity}</td>
+                        <td>${sale.price}</td>
+                        <td>${sale.paymentMethod}</td>
+                        <td>${new Date(sale.createdDate).toLocaleString("en-IN")}</td>
+                        <td>
+                          <button class="print-btn"
+                            onclick='printBill(${JSON.stringify(sale)})'>
+                            Print
+                          </button>
+                        </td>
                       </tr>
                     `;
                 }
@@ -251,36 +267,43 @@ function addSale() {
     });
 }
 
+/* ---------- PRINT BILL ---------- */
+function printBill(sale) {
+    const win = window.open('', '', 'width=300,height=600');
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Bill</title>
+            <style>
+                body { font-family: monospace; padding: 10px; }
+                h3 { text-align: center; }
+                hr { border: 1px dashed #000; }
+            </style>
+        </head>
+        <body>
+            <h3>AYAN WATCH & ELECTRONICS</h3>
+            <hr>
+            Customer: ${sale.customerName}<br>
+            Product : ${sale.productName}<br>
+            Qty     : ${sale.quantity}<br>
+            Price   : ₹${sale.price}<br>
+            Payment : ${sale.paymentMethod}<br>
+            Date    : ${new Date(sale.createdDate).toLocaleString("en-IN")}
+            <hr>
+            <p style="text-align:center">Thank you!</p>
+        </body>
+        </html>
+    `);
+
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+}
+
 loadSales();
 </script>
-<script>
-function printBill(saleId) {
-  fetch(`/sales/${saleId}`)
-    .then(res => res.json())
-    .then(sale => {
-      const bill = `
-        <div style="width: 280px; font-family: monospace;">
-          <h3>AYAN WATCH & ELECTRONICS</h3>
-          ----------------------------
-          Customer: ${sale.customerName}
-          Product : ${sale.productName}
-          Qty     : ${sale.quantity}
-          Price   : ₹${sale.price}
-          Payment : ${sale.paymentMethod}
-          Date    : ${sale.createdDate}
-          ----------------------------
-          Thank you!
-        </div>
-      `;
-
-      const win = window.open('', '', 'width=300,height=600');
-      win.document.write(bill);
-      win.document.close();
-      win.print();
-    });
-}
-</script>
-
 
 </body>
 </html>
