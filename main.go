@@ -15,15 +15,14 @@ import (
 /* ---------- MODEL ---------- */
 
 type Sale struct {
-    SaleID        int       `json:"saleId"`
-    CustomerName  string    `json:"customerName"`
-    ProductName   string    `json:"productName"`
-    Quantity      int       `json:"quantity"`
-    Price         float64   `json:"price"`
-    PaymentMethod string    `json:"paymentMethod"` // CASH or UPI
-    CreatedDate   time.Time `json:"createdDate"`
+	SaleID        int       `json:"saleId"`
+	CustomerName  string    `json:"customerName"`
+	ProductName   string    `json:"productName"`
+	Quantity      int       `json:"quantity"`
+	Price         float64   `json:"price"`
+	PaymentMethod string    `json:"paymentMethod"` // CASH or UPI
+	CreatedDate   time.Time `json:"createdDate"`
 }
-
 
 var db *sql.DB
 
@@ -32,43 +31,40 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// ✅ Read DATABASE_URL from Render
+	// Read DATABASE_URL from Render
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("❌ DATABASE_URL environment variable not set")
 	}
 
-	// ✅ Open DB connection
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("❌ DB open error:", err)
 	}
 
-	// ✅ Verify DB connectivity
 	if err = db.Ping(); err != nil {
 		log.Fatal("❌ DB ping failed:", err)
 	}
 
-	// ✅ Safe pool settings for Render
+	// Safe pool settings
 	db.SetMaxOpenConns(3)
 	db.SetMaxIdleConns(0)
 	db.SetConnMaxLifetime(2 * time.Minute)
 
-	// ✅ Ensure tables exist
+	// Ensure table exists
 	ensureTables()
 
 	log.Println("✅ Database connected & tables ready")
 
-	// ---------- ROUTES ----------
+	// Routes
 	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 
-	// ---------- STATIC FILES ----------
-	fileServer := http.FileServer(http.Dir("./static"))
-	http.Handle("/", fileServer)
+	// Static files
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 
-	// ---------- PORT ----------
+	// Port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "10000"
@@ -81,7 +77,7 @@ func main() {
 /* ---------- AUTO TABLE CREATION ---------- */
 
 func ensureTables() {
-	query := `
+	createTable := `
 	CREATE TABLE IF NOT EXISTS sales (
 		sale_id SERIAL PRIMARY KEY,
 		customer_name TEXT NOT NULL,
@@ -92,11 +88,11 @@ func ensureTables() {
 		created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`
-	if _, err := db.Exec(query); err != nil {
+	if _, err := db.Exec(createTable); err != nil {
 		log.Fatal("❌ Failed to create sales table:", err)
 	}
 
-	// ✅ Add column safely if DB already existed
+	// Add column safely for old DBs
 	_, err := db.Exec(`
 		ALTER TABLE sales
 		ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'CASH';
@@ -108,8 +104,7 @@ func ensureTables() {
 	log.Println("✅ sales table ready with payment_method")
 }
 
-
-/* ---------- HEALTH CHECK ---------- */
+/* ---------- HEALTH ---------- */
 
 func health(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
@@ -126,9 +121,18 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	SELECT sale_id, customer_name, product_name, quantity, price, payment_method, created_date
-FROM sales
-
+	rows, err := db.QueryContext(ctx, `
+		SELECT sale_id,
+		       customer_name,
+		       product_name,
+		       quantity,
+		       price,
+		       payment_method,
+		       created_date
+		FROM sales
+		ORDER BY created_date DESC
+		LIMIT 100
+	`)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -140,18 +144,17 @@ FROM sales
 	for rows.Next() {
 		var s Sale
 		if err := rows.Scan(
-    &s.SaleID,
-    &s.CustomerName,
-    &s.ProductName,
-    &s.Quantity,
-    &s.Price,
-    &s.PaymentMethod,
-    &s.CreatedDate,
-); err != nil {
-    http.Error(w, err.Error(), http.StatusInternalServerError)
-    return
-}
-
+			&s.SaleID,
+			&s.CustomerName,
+			&s.ProductName,
+			&s.Quantity,
+			&s.Price,
+			&s.PaymentMethod,
+			&s.CreatedDate,
+		); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		sales = append(sales, s)
 	}
 
@@ -181,15 +184,20 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	_, err := db.ExecContext(ctx, `
-	INSERT INTO sales (customer_name, product_name, quantity, price, payment_method)
-	VALUES ($1, $2, $3, $4, $5)
-`,
-	sale.CustomerName,
-	sale.ProductName,
-	sale.Quantity,
-	sale.Price,
-	sale.PaymentMethod,
-)
+		INSERT INTO sales (
+			customer_name,
+			product_name,
+			quantity,
+			price,
+			payment_method
+		) VALUES ($1, $2, $3, $4, $5)
+	`,
+		sale.CustomerName,
+		sale.ProductName,
+		sale.Quantity,
+		sale.Price,
+		sale.PaymentMethod,
+	)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
