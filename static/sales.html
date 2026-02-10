@@ -253,6 +253,34 @@ function addSale() {
 
 loadSales();
 </script>
+<script>
+function printBill(saleId) {
+  fetch(`/sales/${saleId}`)
+    .then(res => res.json())
+    .then(sale => {
+      const bill = `
+        <div style="width: 280px; font-family: monospace;">
+          <h3>AYAN WATCH & ELECTRONICS</h3>
+          ----------------------------
+          Customer: ${sale.customerName}
+          Product : ${sale.productName}
+          Qty     : ${sale.quantity}
+          Price   : ₹${sale.price}
+          Payment : ${sale.paymentMethod}
+          Date    : ${sale.createdDate}
+          ----------------------------
+          Thank you!
+        </div>
+      `;
+
+      const win = window.open('', '', 'width=300,height=600');
+      win.document.write(bill);
+      win.document.close();
+      win.print();
+    });
+}
+</script>
+
 
 </body>
 </html>
