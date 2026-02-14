@@ -20,7 +20,6 @@ body {
     margin-bottom:20px;
 }
 .shop-header img { height:60px; }
-
 .shop-name {
     font-size:30px;
     font-weight:bold;
@@ -42,7 +41,6 @@ body {
     flex-wrap:wrap;
     margin-bottom:15px;
 }
-
 .category-tabs button {
     padding:6px 14px;
     border:none;
@@ -55,30 +53,22 @@ body {
 .product-grid {
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:15px;
+    gap:12px;
     margin-bottom:20px;
 }
-
 .product-item {
     border:1px solid #ddd;
-    padding:15px;
+    padding:10px;
     border-radius:10px;
     text-align:center;
     cursor:pointer;
     background:#fff;
-    transition:0.2s;
 }
-
-.product-item:hover {
-    background:#eaf3ff;
-    transform:scale(1.03);
-}
-
+.product-item:hover { background:#eaf3ff; }
 .product-item img {
-    width:100px;
-    height:100px;
-    object-fit:contain;
-    margin-bottom:10px;
+    width:90px;
+    height:90px;
+    object-fit:cover;
 }
 
 .form-grid {
@@ -86,7 +76,6 @@ body {
     grid-template-columns:repeat(2,1fr);
     gap:12px;
 }
-
 .form-grid input, .form-grid select {
     padding:10px;
     border-radius:6px;
@@ -98,7 +87,6 @@ body {
     align-items:center;
     gap:6px;
 }
-
 .qty-box button {
     padding:6px 12px;
     font-size:18px;
@@ -115,13 +103,7 @@ body {
     margin-top:15px;
 }
 
-.summary {
-    display:flex;
-    gap:15px;
-    margin:20px 0;
-    flex-wrap:wrap;
-}
-
+.summary { display:flex; gap:15px; margin:20px 0; flex-wrap:wrap; }
 .box {
     flex:1;
     background:#f1f7ff;
@@ -132,21 +114,9 @@ body {
     font-weight:bold;
 }
 
-table {
-    width:100%;
-    border-collapse:collapse;
-}
-
-th, td {
-    border:1px solid #ddd;
-    padding:8px;
-    text-align:center;
-}
-
-th {
-    background:#1f7ae0;
-    color:white;
-}
+table { width:100%; border-collapse:collapse; }
+th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+th { background:#1f7ae0; color:white; }
 
 .print-btn {
     padding:6px 12px;
@@ -239,7 +209,7 @@ th {
 
 <script>
 
-/* PRODUCTS (NO AUTO PRICE) */
+/* PRODUCTS */
 const products = [
 {name:"Gents Belt Watch",category:"watch",img:"gents-belt.png"},
 {name:"Gents Chain Watch",category:"watch",img:"gents-chain.png"},
@@ -267,10 +237,8 @@ grid.innerHTML+=`
 }
 
 function selectProduct(name){
-document.getElementById("productName").value=name;
-document.getElementById("quantity").value=1;
-document.getElementById("price").value="";
-document.getElementById("totalAmount").value="";
+productName.value=name;
+quantity.value=1;
 }
 
 function changeQty(val){
@@ -288,7 +256,14 @@ totalAmount.value=(price.value*quantity.value)||0;
 price.addEventListener("input",calculateTotal);
 quantity.addEventListener("input",calculateTotal);
 
+/* ADD SALE */
 function addSale(){
+
+if(!productName.value || !price.value){
+alert("Please select product and enter price");
+return;
+}
+
 const sale={
 customerName:customerName.value,
 productName:productName.value,
@@ -304,13 +279,41 @@ body:JSON.stringify(sale)
 })
 .then(res=>res.json())
 .then(()=>{
+loadSales();
 customerName.value="";
 productName.value="";
 quantity.value=1;
 price.value="";
 totalAmount.value="";
-paymentMethod.value="CASH";
-loadSales();
+});
+}
+
+/* LOAD SALES */
+function loadSales(){
+fetch("/sales/today")
+.then(res=>res.json())
+.then(data=>{
+const body=document.getElementById("salesBody");
+body.innerHTML="";
+let total=0;
+
+data.forEach(s=>{
+total+=s.price*s.quantity;
+body.innerHTML+=`
+<tr>
+<td>${s.id}</td>
+<td>${s.customerName}</td>
+<td>${s.productName}</td>
+<td>${s.quantity}</td>
+<td>₹${s.price}</td>
+<td>${s.paymentMethod}</td>
+<td>${new Date(s.createdAt).toLocaleString()}</td>
+<td><button class="print-btn" onclick="window.print()">Print</button></td>
+</tr>`;
+});
+
+count.innerText=data.length;
+amount.innerText=total;
 });
 }
 
