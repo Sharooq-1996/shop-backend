@@ -296,27 +296,52 @@ fetch("/sales")
 const body=document.getElementById("salesBody");
 body.innerHTML="";
 let total=0;
+let todayCount=0;
+let todayAmount=0;
+
+const today = new Date().toISOString().split("T")[0];
 
 data.forEach(s=>{
-total += s.price * s.quantity;
+
+// Fix field names (match Go struct)
+const id = s.ID;
+const customer = s.CustomerName;
+const product = s.ProductName;
+const qty = s.Quantity;
+const price = s.Price;
+const payment = s.PaymentMethod;
+const created = s.CreatedAt;
+
+// Convert date
+const saleDate = created ? created.split("T")[0] : "";
+
+// SHOW ONLY TODAY SALES
+if(saleDate === today){
+
+todayCount++;
+todayAmount += price * qty;
 
 body.innerHTML += `
 <tr>
-<td>${s.id}</td>
-<td>${s.customerName}</td>
-<td>${s.productName}</td>
-<td>${s.quantity}</td>
-<td>₹${s.price}</td>
-<td>${s.paymentMethod}</td>
-<td>${s.createdAt}</td>
+<td>${id}</td>
+<td>${customer}</td>
+<td>${product}</td>
+<td>${qty}</td>
+<td>₹${price}</td>
+<td>${payment}</td>
+<td>${saleDate}</td>
 <td><button class="print-btn" onclick="window.print()">Print</button></td>
 </tr>`;
+}
+
 });
 
-document.getElementById("count").innerText = data.length;
-document.getElementById("amount").innerText = total;
+document.getElementById("count").innerText = todayCount;
+document.getElementById("amount").innerText = todayAmount;
+
 });
 }
+
 
 
 loadProducts();
