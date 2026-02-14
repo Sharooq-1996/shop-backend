@@ -92,52 +92,52 @@ th{
 <div class="product-grid">
 
 <div class="product-item" onclick="selectProduct('Gents Belt Watch')">
-<img src="images/gents_belt.jpg">
+<img src="gents-belt.png">
 <p>Gents Belt Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Gents Chain Watch')">
-<img src="images/gents_chain.jpg">
+<img src="gents-chain.png">
 <p>Gents Chain Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
-<img src="images/ladies_belt.jpg">
+<img src="ladies-belt.png">
 <p>Ladies Belt Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
-<img src="images/ladies_chain.jpg">
+<img src="ladies-chain.png">
 <p>Ladies Chain Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Wall Clock')">
-<img src="images/wall_clock.jpg">
+<img src="wall-clock.png">
 <p>Wall Clock</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Alarm Timepiece')">
-<img src="images/alarm.jpg">
+<img src="alarm.png">
 <p>Alarm Timepiece</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Strap')">
-<img src="images/strap.jpg">
+<img src="straps.png">
 <p>Strap</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Chain')">
-<img src="images/chain.jpg">
+<img src="chain.png">
 <p>Chain</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Repair')">
-<img src="images/repair.jpg">
+<img src="repair.png">
 <p>Repair</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Watch Cell')">
-<img src="images/watch_cell.jpg">
+<img src="watch-cell.png">
 <p>Watch Cell</p>
 </div>
 
@@ -185,11 +185,9 @@ th{
 
 <script>
 
-function getISTDate(){
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (5.5 * 60 * 60 * 1000));
-    return ist.toISOString().split("T")[0];
+function getISTDateOnly(dateStr){
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 }
 
 function selectProduct(name){
@@ -245,13 +243,13 @@ body.innerHTML="";
 let count=0;
 let amount=0;
 
-const today=getISTDate();
+const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 
 data.forEach(s=>{
 
 if(!s.createdDate) return;
 
-const saleDate=new Date(s.createdDate).toISOString().split("T")[0];
+const saleDate=getISTDateOnly(s.createdDate);
 
 if(saleDate===today){
 
@@ -260,7 +258,7 @@ amount+=s.price*s.quantity;
 
 body.innerHTML+=`
 <tr>
-<td>${s.id}</td>
+<td>${s.saleId || "-"}</td>
 <td>${s.customerName}</td>
 <td>${s.productName}</td>
 <td>${s.quantity}</td>
