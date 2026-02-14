@@ -29,20 +29,21 @@ var db *sql.DB
 /* ---------- MAIN ---------- */
 
 func main() {
+
 	var err error
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		log.Fatal("❌ DATABASE_URL not set")
+		log.Fatal("DATABASE_URL not set")
 	}
 
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal("❌ DB open error:", err)
+		log.Fatal("DB open error:", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		log.Fatal("❌ DB ping failed:", err)
+		log.Fatal("DB connection failed:", err)
 	}
 
 	db.SetMaxOpenConns(3)
@@ -57,9 +58,9 @@ func main() {
 	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
-	http.HandleFunc("/sales/reset", resetSales) // 🔥 use once
+	http.HandleFunc("/sales/clear", clearSales)
 
-	/* STATIC FILES */
+	/* STATIC */
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	port := os.Getenv("PORT")
@@ -89,7 +90,7 @@ func ensureTables() {
 
 	_, err := db.Exec(createTable)
 	if err != nil {
-		log.Fatal("❌ Failed creating sales table:", err)
+		log.Fatal("Table creation failed:", err)
 	}
 
 	log.Println("✅ sales table ready")
@@ -99,39 +100,50 @@ func ensureTables() {
 
 func health(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
-/* ---------- GET SALES ---------- */
+/* ---------- GET SALES (with optional date filter) ---------- */
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 
 	enableCORS(w)
 	w.Header().Set("Content-Type", "application/json")
 
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctx, `
-		SELECT sale_id,
-		       customer_name,
-		       product_name,
-		       quantity,
-		       price,
-		       payment_method,
-		       created_date
-		FROM sales
-		ORDER BY created_date DESC
-		LIMIT 500
-	`)
+	var rows *sql.Rows
+	var err error
+
+	if from != "" && to != "" {
+		rows, err = db.QueryContext(ctx, `
+			SELECT sale_id, customer_name, product_name,
+			       quantity, price, payment_method, created_date
+			FROM sales
+			WHERE DATE(created_date) BETWEEN $1 AND $2
+			ORDER BY created_date DESC
+		`, from, to)
+	} else {
+		rows, err = db.QueryContext(ctx, `
+			SELECT sale_id, customer_name, product_name,
+			       quantity, price, payment_method, created_date
+			FROM sales
+			ORDER BY created_date DESC
+			LIMIT 200
+		`)
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	sales := []Sale{}
+	var sales []Sale
 
 	for rows.Next() {
 		var s Sale
@@ -154,7 +166,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sales)
 }
 
-/* ---------- CREATE SALE (WITH IST FIX) ---------- */
+/* ---------- CREATE SALE ---------- */
 
 func createSale(w http.ResponseWriter, r *http.Request) {
 
@@ -163,6 +175,7 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		return
 	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -175,10 +188,6 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 🔥 Insert IST time manually
-	istLocation, _ := time.LoadLocation("Asia/Kolkata")
-	istNow := time.Now().In(istLocation)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -188,16 +197,15 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 			product_name,
 			quantity,
 			price,
-			payment_method,
-			created_date
-		) VALUES ($1, $2, $3, $4, $5, $6)
+			payment_method
+		)
+		VALUES ($1, $2, $3, $4, $5)
 	`,
 		sale.CustomerName,
 		sale.ProductName,
 		sale.Quantity,
 		sale.Price,
 		sale.PaymentMethod,
-		istNow,
 	)
 
 	if err != nil {
@@ -210,31 +218,19 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-/* ---------- RESET SALES (USE ONCE) ---------- */
+/* ---------- CLEAR ALL SALES ---------- */
 
-func resetSales(w http.ResponseWriter, r *http.Request) {
+func clearSales(w http.ResponseWriter, r *http.Request) {
 
 	enableCORS(w)
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err := db.ExecContext(ctx, `
-		TRUNCATE TABLE sales RESTART IDENTITY;
-	`)
+	_, err := db.Exec(`TRUNCATE TABLE sales RESTART IDENTITY;`)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "All sales deleted & ID reset",
-	})
+	w.Write([]byte("All sales deleted & ID reset"))
 }
 
 /* ---------- CORS ---------- */
