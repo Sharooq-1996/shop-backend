@@ -1,308 +1,302 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sales – Ayan Watch and Electronics</title>
+<title>Sales – Ayan Watch and Electronics</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background:
-              linear-gradient(
-                rgba(238,242,243,0.75),
-                rgba(238,242,243,0.75)
-              ),
-              url("logo.png") center/420px no-repeat fixed;
-            padding: 20px;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background:
+      linear-gradient(rgba(238,242,243,0.75), rgba(238,242,243,0.75)),
+      url("logo.png") center/420px no-repeat fixed;
+    padding: 20px;
+}
 
-        /* ---------- HEADER ---------- */
-        .shop-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
+/* HEADER */
+.shop-header {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:15px;
+    margin-bottom:20px;
+}
+.shop-header img { height:60px; }
+.shop-name {
+    font-size:30px;
+    font-weight:bold;
+    color:#1f7ae0;
+}
 
-        .shop-header img {
-            height: 60px;
-        }
+/* CARD */
+.container {
+    background:rgba(255,255,255,0.97);
+    padding:25px;
+    max-width:1200px;
+    margin:auto;
+    border-radius:12px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.15);
+}
 
-        .shop-name {
-            font-size: 30px;
-            font-weight: bold;
-            color: #1f7ae0;
-        }
+/* CATEGORY */
+.category-tabs {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:15px;
+}
+.category-tabs button {
+    padding:6px 14px;
+    border:none;
+    background:#1f7ae0;
+    color:white;
+    border-radius:6px;
+    cursor:pointer;
+}
 
-        /* ---------- MAIN CARD ---------- */
-        .container {
-            background: rgba(255,255,255,0.97);
-            padding: 25px;
-            max-width: 1200px;
-            margin: auto;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
+/* PRODUCT GRID */
+.product-grid {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-bottom:20px;
+}
+.product-item {
+    border:1px solid #ddd;
+    padding:10px;
+    border-radius:10px;
+    text-align:center;
+    cursor:pointer;
+    background:#fff;
+}
+.product-item:hover { background:#eaf3ff; }
+.product-item img {
+    width:80px;
+    height:80px;
+    object-fit:cover;
+}
 
-        h2 {
-            text-align: center;
-            margin-bottom: 15px;
-        }
+/* SELECTED ITEM */
+.form-grid {
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+}
+.form-grid input, .form-grid select {
+    padding:10px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+.qty-box {
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+.qty-box button {
+    padding:6px 12px;
+    font-size:18px;
+}
 
-        /* ---------- FORM ---------- */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
+.add-btn {
+    padding:12px 35px;
+    font-size:16px;
+    background:#28a745;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    margin-top:15px;
+}
 
-        .form-grid input,
-        .form-grid select {
-            padding: 12px;
-            font-size: 15px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
+/* SUMMARY + TABLE same as before */
+.summary { display:flex; gap:15px; margin:20px 0; flex-wrap:wrap; }
+.box {
+    flex:1;
+    background:#f1f7ff;
+    padding:18px;
+    border-radius:10px;
+    text-align:center;
+    font-size:18px;
+    font-weight:bold;
+}
 
-        .form-actions {
-            text-align: center;
-        }
+table { width:100%; border-collapse:collapse; }
+th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+th { background:#1f7ae0; color:white; }
 
-        .form-actions button {
-            padding: 12px 35px;
-            font-size: 16px;
-            background: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 6px;
-        }
+.print-btn {
+    padding:6px 12px;
+    background:#6f42c1;
+    color:#fff;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
 
-        /* ---------- SUMMARY ---------- */
-        .summary {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .box {
-            flex: 1;
-            background: #f1f7ff;
-            padding: 18px;
-            border-radius: 10px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        /* ---------- TABLE ---------- */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 9px;
-            text-align: center;
-        }
-
-        th {
-            background: #1f7ae0;
-            color: white;
-        }
-
-        .print-btn {
-            padding: 6px 12px;
-            background: #6f42c1;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        /* ---------- MOBILE ---------- */
-        @media (max-width: 700px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .shop-name {
-                font-size: 22px;
-            }
-        }
-    </style>
+@media (max-width:700px){
+    .form-grid { grid-template-columns:1fr; }
+    .product-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
 </head>
 
 <body>
 
-<!-- HEADER -->
 <div class="shop-header">
-    <img src="logo.png" alt="Logo">
+    <img src="logo.png">
     <div class="shop-name">Ayan Watch and Electronics</div>
 </div>
 
 <div class="container">
 
-    <h2>Add Daily Sale</h2>
+<h2>Select Product</h2>
 
-    <div class="form-grid">
-        <input id="customerName" placeholder="Customer Name">
-        <input id="productName" placeholder="Product Name">
-        <input id="quantity" type="number" placeholder="Quantity">
-        <input id="price" type="number" placeholder="Price">
+<div class="category-tabs">
+    <button onclick="loadProducts('all')">All</button>
+    <button onclick="loadProducts('watch')">Watches</button>
+    <button onclick="loadProducts('clock')">Clocks</button>
+    <button onclick="loadProducts('accessory')">Accessories</button>
+    <button onclick="loadProducts('repair')">Repair</button>
+</div>
 
-        <select id="paymentMethod">
-            <option value="CASH">Cash</option>
-            <option value="UPI">UPI</option>
-        </select>
+<div class="product-grid" id="productGrid"></div>
+
+<hr>
+
+<h2>Selected Item</h2>
+
+<div class="form-grid">
+    <input id="customerName" placeholder="Customer Name">
+
+    <input id="productName" placeholder="Product" readonly>
+
+    <div class="qty-box">
+        <button onclick="changeQty(-1)">-</button>
+        <input id="quantity" type="number" value="1">
+        <button onclick="changeQty(1)">+</button>
     </div>
 
-    <div class="form-actions">
-        <button onclick="addSale()">Add Sale</button>
-    </div>
+    <input id="price" type="number" placeholder="Price" readonly>
 
-    <hr style="margin:25px 0;">
+    <input id="totalAmount" placeholder="Total" readonly>
 
-    <h2>Today’s Sales Report</h2>
+    <select id="paymentMethod">
+        <option value="CASH">Cash</option>
+        <option value="UPI">UPI</option>
+    </select>
+</div>
 
-    <div class="summary">
-        <div class="box">
-            Total Sales Count<br>
-            <span id="count">0</span>
-        </div>
-        <div class="box">
-            Total Sales Amount ₹<br>
-            <span id="amount">0</span>
-        </div>
-    </div>
+<button class="add-btn" onclick="addSale()">Add Sale</button>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Customer</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Payment</th>
-                <th>Date</th>
-                <th>Print</th>
-            </tr>
-        </thead>
-        <tbody id="salesBody"></tbody>
-    </table>
+<hr>
+
+<h2>Today’s Sales Report</h2>
+
+<div class="summary">
+    <div class="box">Total Sales Count<br><span id="count">0</span></div>
+    <div class="box">Total Sales Amount ₹<br><span id="amount">0</span></div>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Customer</th>
+<th>Product</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Payment</th>
+<th>Date</th>
+<th>Print</th>
+</tr>
+</thead>
+<tbody id="salesBody"></tbody>
+</table>
 
 </div>
 
 <script>
-function loadSales() {
-    fetch("/sales")
-        .then(r => r.json())
-        .then(data => {
 
-            const today = new Date().toISOString().split("T")[0];
-            let total = 0;
-            let count = 0;
+/* PRODUCTS */
+const products = [
+{name:"Gents Belt Watch",price:1200,category:"watch",img:"images/gents_belt.jpg"},
+{name:"Gents Chain Watch",price:1500,category:"watch",img:"images/gents_chain.jpg"},
+{name:"Ladies Belt Watch",price:1000,category:"watch",img:"images/ladies_belt.jpg"},
+{name:"Ladies Chain Watch",price:1300,category:"watch",img:"images/ladies_chain.jpg"},
+{name:"Wall Clock",price:800,category:"clock",img:"images/wall_clock.jpg"},
+{name:"Alarm Timepiece",price:450,category:"clock",img:"images/alarm.jpg"},
+{name:"Strap",price:250,category:"accessory",img:"images/strap.jpg"},
+{name:"Chain",price:300,category:"accessory",img:"images/chain.jpg"},
+{name:"Repair",price:200,category:"repair",img:"images/repair.jpg"}
+];
 
-            const tbody = document.getElementById("salesBody");
-            tbody.innerHTML = "";
-
-            data.forEach(sale => {
-                const saleDate = new Date(sale.createdDate).toISOString().split("T")[0];
-
-                if (saleDate === today) {
-                    count++;
-                    total += sale.price * sale.quantity;
-
-                    tbody.innerHTML += `
-                      <tr>
-                        <td>${sale.saleId}</td>
-                        <td>${sale.customerName}</td>
-                        <td>${sale.productName}</td>
-                        <td>${sale.quantity}</td>
-                        <td>${sale.price}</td>
-                        <td>${sale.paymentMethod}</td>
-                        <td>${new Date(sale.createdDate).toLocaleString("en-IN")}</td>
-                        <td>
-                          <button class="print-btn"
-                            onclick='printBill(${JSON.stringify(sale)})'>
-                            Print
-                          </button>
-                        </td>
-                      </tr>
-                    `;
-                }
-            });
-
-            document.getElementById("count").innerText = count;
-            document.getElementById("amount").innerText = total.toFixed(2);
-        });
+function loadProducts(category="all"){
+const grid=document.getElementById("productGrid");
+grid.innerHTML="";
+products.forEach(p=>{
+if(category==="all"||p.category===category){
+grid.innerHTML+=`
+<div class="product-item" onclick="selectProduct('${p.name}',${p.price})">
+<img src="${p.img}">
+<p>${p.name}</p>
+<strong>₹${p.price}</strong>
+</div>`;
+}});
 }
 
-function addSale() {
-    const sale = {
-        customerName: customerName.value,
-        productName: productName.value,
-        quantity: parseInt(quantity.value),
-        price: parseFloat(price.value),
-        paymentMethod: paymentMethod.value
-    };
-
-    fetch("/sales/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sale)
-    }).then(() => {
-        customerName.value = "";
-        productName.value = "";
-        quantity.value = "";
-        price.value = "";
-        paymentMethod.value = "CASH";
-        loadSales();
-    });
+function selectProduct(name,price){
+productName.value=name;
+priceField.value=price;
+quantity.value=1;
+calculateTotal();
 }
 
-/* ---------- PRINT BILL ---------- */
-function printBill(sale) {
-    const win = window.open('', '', 'width=300,height=600');
+const priceField=document.getElementById("price");
 
-    win.document.write(`
-        <html>
-        <head>
-            <title>Bill</title>
-            <style>
-                body { font-family: monospace; padding: 10px; }
-                h3 { text-align: center; }
-                hr { border: 1px dashed #000; }
-            </style>
-        </head>
-        <body>
-            <h3>AYAN WATCH & ELECTRONICS</h3>
-            <hr>
-            Customer: ${sale.customerName}<br>
-            Product : ${sale.productName}<br>
-            Qty     : ${sale.quantity}<br>
-            Price   : ₹${sale.price}<br>
-            Payment : ${sale.paymentMethod}<br>
-            Date    : ${new Date(sale.createdDate).toLocaleString("en-IN")}
-            <hr>
-            <p style="text-align:center">Thank you!</p>
-        </body>
-        </html>
-    `);
-
-    win.document.close();
-    win.focus();
-    win.print();
-    win.close();
+function changeQty(val){
+let qty=parseInt(quantity.value)||1;
+qty+=val;
+if(qty<1) qty=1;
+quantity.value=qty;
+calculateTotal();
 }
 
+function calculateTotal(){
+totalAmount.value=(price.value*quantity.value)||0;
+}
+
+quantity.addEventListener("input",calculateTotal);
+
+/* YOUR EXISTING BACKEND CODE REMAINS SAME */
+function addSale(){
+const sale={
+customerName:customerName.value,
+productName:productName.value,
+quantity:+quantity.value,
+price:+price.value,
+paymentMethod:paymentMethod.value
+};
+
+fetch("/sales/create",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(sale)
+}).then(()=>{
+customerName.value="";
+productName.value="";
+quantity.value=1;
+price.value="";
+totalAmount.value="";
+paymentMethod.value="CASH";
 loadSales();
+});
+}
+
+/* KEEP YOUR EXISTING loadSales & printBill FUNCTIONS HERE */
+/* (No changes needed in your print function) */
+
+loadProducts();
+loadSales();
+
 </script>
 
 </body>
