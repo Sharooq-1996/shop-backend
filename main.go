@@ -20,7 +20,7 @@ type Sale struct {
 	ProductName   string    `json:"productName"`
 	Quantity      int       `json:"quantity"`
 	Price         float64   `json:"price"`
-	PaymentMethod string    `json:"paymentMethod"` // CASH or UPI
+	PaymentMethod string    `json:"paymentMethod"`
 	CreatedDate   time.Time `json:"createdDate"`
 }
 
@@ -31,10 +31,9 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// Read DATABASE_URL from Render
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		log.Fatal("❌ DATABASE_URL environment variable not set")
+		log.Fatal("❌ DATABASE_URL not set")
 	}
 
 	db, err = sql.Open("postgres", dbURL)
@@ -46,25 +45,23 @@ func main() {
 		log.Fatal("❌ DB ping failed:", err)
 	}
 
-	// Safe pool settings
 	db.SetMaxOpenConns(3)
 	db.SetMaxIdleConns(0)
 	db.SetConnMaxLifetime(2 * time.Minute)
 
-	// Ensure table exists
 	ensureTables()
 
-	log.Println("✅ Database connected & tables ready")
+	log.Println("✅ Database connected")
 
-	// Routes
+	/* ROUTES */
 	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
+	http.HandleFunc("/sales/reset", resetSales) // 🔥 use once
 
-	// Static files
+	/* STATIC FILES */
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 
-	// Port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "10000"
@@ -74,9 +71,10 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-/* ---------- AUTO TABLE CREATION ---------- */
+/* ---------- TABLE CREATION ---------- */
 
 func ensureTables() {
+
 	createTable := `
 	CREATE TABLE IF NOT EXISTS sales (
 		sale_id SERIAL PRIMARY KEY,
@@ -88,20 +86,13 @@ func ensureTables() {
 		created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`
-	if _, err := db.Exec(createTable); err != nil {
-		log.Fatal("❌ Failed to create sales table:", err)
-	}
 
-	// Add column safely for old DBs
-	_, err := db.Exec(`
-		ALTER TABLE sales
-		ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'CASH';
-	`)
+	_, err := db.Exec(createTable)
 	if err != nil {
-		log.Fatal("❌ Failed to add payment_method column:", err)
+		log.Fatal("❌ Failed creating sales table:", err)
 	}
 
-	log.Println("✅ sales table ready with payment_method")
+	log.Println("✅ sales table ready")
 }
 
 /* ---------- HEALTH ---------- */
@@ -115,6 +106,7 @@ func health(w http.ResponseWriter, r *http.Request) {
 /* ---------- GET SALES ---------- */
 
 func getSales(w http.ResponseWriter, r *http.Request) {
+
 	enableCORS(w)
 	w.Header().Set("Content-Type", "application/json")
 
@@ -131,7 +123,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		       created_date
 		FROM sales
 		ORDER BY created_date DESC
-		LIMIT 100
+		LIMIT 500
 	`)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -143,7 +135,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var s Sale
-		if err := rows.Scan(
+		err := rows.Scan(
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
@@ -151,7 +143,8 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 			&s.Price,
 			&s.PaymentMethod,
 			&s.CreatedDate,
-		); err != nil {
+		)
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -161,9 +154,10 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sales)
 }
 
-/* ---------- CREATE SALE ---------- */
+/* ---------- CREATE SALE (WITH IST FIX) ---------- */
 
 func createSale(w http.ResponseWriter, r *http.Request) {
+
 	enableCORS(w)
 
 	if r.Method == http.MethodOptions {
@@ -175,28 +169,35 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var sale Sale
-	if err := json.NewDecoder(r.Body).Decode(&sale); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&sale)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// 🔥 Insert IST time manually
+	istLocation, _ := time.LoadLocation("Asia/Kolkata")
+	istNow := time.Now().In(istLocation)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := db.ExecContext(ctx, `
+	_, err = db.ExecContext(ctx, `
 		INSERT INTO sales (
 			customer_name,
 			product_name,
 			quantity,
 			price,
-			payment_method
-		) VALUES ($1, $2, $3, $4, $5)
+			payment_method,
+			created_date
+		) VALUES ($1, $2, $3, $4, $5, $6)
 	`,
 		sale.CustomerName,
 		sale.ProductName,
 		sale.Quantity,
 		sale.Price,
 		sale.PaymentMethod,
+		istNow,
 	)
 
 	if err != nil {
@@ -206,6 +207,33 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Sale added successfully",
+	})
+}
+
+/* ---------- RESET SALES (USE ONCE) ---------- */
+
+func resetSales(w http.ResponseWriter, r *http.Request) {
+
+	enableCORS(w)
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := db.ExecContext(ctx, `
+		TRUNCATE TABLE sales RESTART IDENTITY;
+	`)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "All sales deleted & ID reset",
 	})
 }
 
