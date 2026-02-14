@@ -12,7 +12,6 @@ body {
     padding: 20px;
 }
 
-/* HEADER */
 .shop-header {
     display:flex;
     align-items:center;
@@ -21,13 +20,13 @@ body {
     margin-bottom:20px;
 }
 .shop-header img { height:60px; }
+
 .shop-name {
     font-size:30px;
     font-weight:bold;
     color:#1f7ae0;
 }
 
-/* CARD */
 .container {
     background:rgba(255,255,255,0.97);
     padding:25px;
@@ -37,13 +36,13 @@ body {
     box-shadow:0 10px 25px rgba(0,0,0,0.15);
 }
 
-/* CATEGORY */
 .category-tabs {
     display:flex;
     gap:8px;
     flex-wrap:wrap;
     margin-bottom:15px;
 }
+
 .category-tabs button {
     padding:6px 14px;
     border:none;
@@ -53,44 +52,53 @@ body {
     cursor:pointer;
 }
 
-/* PRODUCT GRID */
 .product-grid {
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:12px;
+    gap:15px;
     margin-bottom:20px;
 }
+
 .product-item {
     border:1px solid #ddd;
-    padding:10px;
+    padding:15px;
     border-radius:10px;
     text-align:center;
     cursor:pointer;
     background:#fff;
-}
-.product-item:hover { background:#eaf3ff; }
-.product-item img {
-    width:80px;
-    height:80px;
-    object-fit:cover;
+    transition:0.2s;
 }
 
-/* SELECTED ITEM */
+.product-item:hover {
+    background:#eaf3ff;
+    transform:scale(1.03);
+}
+
+.product-item img {
+    width:100px;
+    height:100px;
+    object-fit:contain;
+    margin-bottom:10px;
+}
+
 .form-grid {
     display:grid;
     grid-template-columns:repeat(2,1fr);
     gap:12px;
 }
+
 .form-grid input, .form-grid select {
     padding:10px;
     border-radius:6px;
     border:1px solid #ccc;
 }
+
 .qty-box {
     display:flex;
     align-items:center;
     gap:6px;
 }
+
 .qty-box button {
     padding:6px 12px;
     font-size:18px;
@@ -107,8 +115,13 @@ body {
     margin-top:15px;
 }
 
-/* SUMMARY + TABLE same as before */
-.summary { display:flex; gap:15px; margin:20px 0; flex-wrap:wrap; }
+.summary {
+    display:flex;
+    gap:15px;
+    margin:20px 0;
+    flex-wrap:wrap;
+}
+
 .box {
     flex:1;
     background:#f1f7ff;
@@ -119,9 +132,21 @@ body {
     font-weight:bold;
 }
 
-table { width:100%; border-collapse:collapse; }
-th, td { border:1px solid #ddd; padding:8px; text-align:center; }
-th { background:#1f7ae0; color:white; }
+table {
+    width:100%;
+    border-collapse:collapse;
+}
+
+th, td {
+    border:1px solid #ddd;
+    padding:8px;
+    text-align:center;
+}
+
+th {
+    background:#1f7ae0;
+    color:white;
+}
 
 .print-btn {
     padding:6px 12px;
@@ -166,7 +191,6 @@ th { background:#1f7ae0; color:white; }
 
 <div class="form-grid">
     <input id="customerName" placeholder="Customer Name">
-
     <input id="productName" placeholder="Product" readonly>
 
     <div class="qty-box">
@@ -175,8 +199,7 @@ th { background:#1f7ae0; color:white; }
         <button onclick="changeQty(1)">+</button>
     </div>
 
-    <input id="price" type="number" placeholder="Price" readonly>
-
+    <input id="price" type="number" placeholder="Enter Price">
     <input id="totalAmount" placeholder="Total" readonly>
 
     <select id="paymentMethod">
@@ -216,17 +239,18 @@ th { background:#1f7ae0; color:white; }
 
 <script>
 
-/* PRODUCTS */
+/* PRODUCTS (NO AUTO PRICE) */
 const products = [
-{name:"Gents Belt Watch",price:1200,category:"watch",img:"images/gents_belt.jpg"},
-{name:"Gents Chain Watch",price:1500,category:"watch",img:"images/gents_chain.jpg"},
-{name:"Ladies Belt Watch",price:1000,category:"watch",img:"images/ladies_belt.jpg"},
-{name:"Ladies Chain Watch",price:1300,category:"watch",img:"images/ladies_chain.jpg"},
-{name:"Wall Clock",price:800,category:"clock",img:"images/wall_clock.jpg"},
-{name:"Alarm Timepiece",price:450,category:"clock",img:"images/alarm.jpg"},
-{name:"Strap",price:250,category:"accessory",img:"images/strap.jpg"},
-{name:"Chain",price:300,category:"accessory",img:"images/chain.jpg"},
-{name:"Repair",price:200,category:"repair",img:"images/repair.jpg"}
+{name:"Gents Belt Watch",category:"watch",img:"gents-belt.png"},
+{name:"Gents Chain Watch",category:"watch",img:"gents-chain.png"},
+{name:"Ladies Belt Watch",category:"watch",img:"ladies-belt.png"},
+{name:"Ladies Chain Watch",category:"watch",img:"ladies-chain.png"},
+{name:"Wall Clock",category:"clock",img:"wall-clock.png"},
+{name:"Alarm Timepiece",category:"clock",img:"alarm.png"},
+{name:"Strap",category:"accessory",img:"straps.png"},
+{name:"Chain",category:"accessory",img:"chain.png"},
+{name:"Repair",category:"repair",img:"repair.png"},
+{name:"Watch Cell",category:"accessory",img:"watch-cell.png"}
 ];
 
 function loadProducts(category="all"){
@@ -235,22 +259,19 @@ grid.innerHTML="";
 products.forEach(p=>{
 if(category==="all"||p.category===category){
 grid.innerHTML+=`
-<div class="product-item" onclick="selectProduct('${p.name}',${p.price})">
+<div class="product-item" onclick="selectProduct('${p.name}')">
 <img src="${p.img}">
 <p>${p.name}</p>
-<strong>₹${p.price}</strong>
 </div>`;
 }});
 }
 
-function selectProduct(name,price){
-productName.value=name;
-priceField.value=price;
-quantity.value=1;
-calculateTotal();
+function selectProduct(name){
+document.getElementById("productName").value=name;
+document.getElementById("quantity").value=1;
+document.getElementById("price").value="";
+document.getElementById("totalAmount").value="";
 }
-
-const priceField=document.getElementById("price");
 
 function changeQty(val){
 let qty=parseInt(quantity.value)||1;
@@ -264,9 +285,9 @@ function calculateTotal(){
 totalAmount.value=(price.value*quantity.value)||0;
 }
 
+price.addEventListener("input",calculateTotal);
 quantity.addEventListener("input",calculateTotal);
 
-/* YOUR EXISTING BACKEND CODE REMAINS SAME */
 function addSale(){
 const sale={
 customerName:customerName.value,
@@ -280,7 +301,9 @@ fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(sale)
-}).then(()=>{
+})
+.then(res=>res.json())
+.then(()=>{
 customerName.value="";
 productName.value="";
 quantity.value=1;
@@ -290,9 +313,6 @@ paymentMethod.value="CASH";
 loadSales();
 });
 }
-
-/* KEEP YOUR EXISTING loadSales & printBill FUNCTIONS HERE */
-/* (No changes needed in your print function) */
 
 loadProducts();
 loadSales();
