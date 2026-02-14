@@ -266,7 +266,26 @@ function addSale(){
 }
 
 /* LOAD TODAY SALES (Indian Time Safe) */
+function getTodayIST(){
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istTime = new Date(now.getTime() + istOffset);
+    return istTime.toISOString().split("T")[0];
+}
+
 function loadSales(){
+    const today = getTodayIST();
+    loadSalesByDate(today);
+}
+
+function filterByDate(){
+    const selectedDate = document.getElementById("dateFilter").value;
+    if(selectedDate){
+        loadSalesByDate(selectedDate);
+    }
+}
+
+function loadSalesByDate(dateToShow){
     fetch("/sales")
     .then(res=>res.json())
     .then(data=>{
@@ -274,29 +293,15 @@ function loadSales(){
         const tbody = document.getElementById("salesBody");
         tbody.innerHTML="";
 
-        if(data.length === 0){
-            document.getElementById("count").innerText = 0;
-            document.getElementById("amount").innerText = 0;
-            return;
-        }
-
-        // 🔥 Find latest date from database
-        let latestDate = data[0].date;
-
-        data.forEach(sale=>{
-            if(sale.date > latestDate){
-                latestDate = sale.date;
-            }
-        });
-
-        let totalAmountSum = 0;
+        let totalAmount = 0;
         let totalCount = 0;
 
         data.forEach(sale=>{
-            if(sale.date === latestDate){
+
+            if(sale.date === dateToShow){
 
                 totalCount++;
-                totalAmountSum += Number(sale.price);
+                totalAmount += Number(sale.price);
 
                 tbody.innerHTML += `
                 <tr>
@@ -312,9 +317,10 @@ function loadSales(){
         });
 
         document.getElementById("count").innerText = totalCount;
-        document.getElementById("amount").innerText = totalAmountSum;
+        document.getElementById("amount").innerText = totalAmount;
     });
 }
+
 
 
 loadProducts();
