@@ -4,12 +4,11 @@
 <title>Sales – Ayan Watch and Electronics</title>
 
 <style>
-body {
-    font-family: Arial, sans-serif;
-    padding:20px;
+body{
+    font-family:Arial;
     background:#eef2f3;
+    padding:20px;
 }
-
 .container{
     max-width:1200px;
     margin:auto;
@@ -17,44 +16,49 @@ body {
     padding:20px;
     border-radius:10px;
 }
-
 .product-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:12px;
+    gap:15px;
+    margin-bottom:20px;
 }
-
 .product-item{
     border:1px solid #ddd;
-    padding:10px;
+    padding:15px;
     text-align:center;
     border-radius:10px;
     cursor:pointer;
 }
-
-.product-item img{
-    width:90px;
-    height:90px;
-    object-fit:cover;
+.product-item:hover{
+    background:#f1f7ff;
 }
-
+.product-item img{
+    width:100px;
+    height:100px;
+    object-fit:contain;
+    margin-bottom:10px;
+}
 .form-grid{
     display:grid;
     grid-template-columns:repeat(2,1fr);
     gap:12px;
-    margin-top:20px;
 }
-
 .form-grid input,.form-grid select{
     padding:10px;
 }
-
+.add-btn{
+    padding:10px 25px;
+    background:#28a745;
+    color:white;
+    border:none;
+    margin-top:15px;
+    cursor:pointer;
+}
 .summary{
     display:flex;
     gap:20px;
     margin:20px 0;
 }
-
 .box{
     flex:1;
     background:#f1f7ff;
@@ -63,30 +67,18 @@ body {
     font-weight:bold;
     border-radius:10px;
 }
-
 table{
     width:100%;
     border-collapse:collapse;
 }
-
 th,td{
     border:1px solid #ddd;
     padding:8px;
     text-align:center;
 }
-
 th{
     background:#1f7ae0;
     color:white;
-}
-
-.add-btn{
-    padding:10px 25px;
-    background:#28a745;
-    color:white;
-    border:none;
-    margin-top:15px;
-    cursor:pointer;
 }
 </style>
 </head>
@@ -98,9 +90,57 @@ th{
 <h2>Select Product</h2>
 
 <div class="product-grid">
-<div class="product-item" onclick="selectProduct('Repair')">Repair</div>
-<div class="product-item" onclick="selectProduct('Gents Belt Watch')">Gents Belt Watch</div>
-<div class="product-item" onclick="selectProduct('Wall Clock')">Wall Clock</div>
+
+<div class="product-item" onclick="selectProduct('Gents Belt Watch')">
+<img src="gents-belt.png">
+<p>Gents Belt Watch</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Gents Chain Watch')">
+<img src="gents-chain.png">
+<p>Gents Chain Watch</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
+<img src="ladies-belt.png">
+<p>Ladies Belt Watch</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
+<img src="ladies-chain.png">
+<p>Ladies Chain Watch</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Wall Clock')">
+<img src="wall-clock.png">
+<p>Wall Clock</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Alarm Timepiece')">
+<img src="alarm.png">
+<p>Alarm Timepiece</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Strap')">
+<img src="straps.png">
+<p>Strap</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Chain')">
+<img src="chain.png">
+<p>Chain</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Repair')">
+<img src="repair.png">
+<p>Repair</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Watch Cell')">
+<img src="watch-cell.png">
+<p>Watch Cell</p>
+</div>
+
 </div>
 
 <h2>Selected Item</h2>
@@ -157,12 +197,11 @@ totalAmount.value=(price.value*quantity.value)||0;
 }
 
 function addSale(){
-
 const sale={
 customerName:customerName.value,
 productName:productName.value,
-quantity:parseInt(quantity.value),
-price:parseFloat(price.value),
+quantity:+quantity.value,
+price:+price.value,
 paymentMethod:paymentMethod.value
 };
 
@@ -170,12 +209,10 @@ fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(sale)
-})
-.then(()=>loadSales());
+}).then(()=>loadSales());
 }
 
 function loadSales(){
-
 fetch("/sales")
 .then(res=>res.json())
 .then(data=>{
@@ -185,51 +222,35 @@ body.innerHTML="";
 let count=0;
 let amount=0;
 
-// India date
-const now=new Date();
-const today=now.getFullYear()+"-"+
-String(now.getMonth()+1).padStart(2,'0')+"-"+
-String(now.getDate()).padStart(2,'0');
+const today=new Date().toISOString().split("T")[0];
 
 data.forEach(s=>{
 
-const id=s.saleId;
-const customer=s.customerName;
-const product=s.productName;
-const qty=s.quantity;
-const price=s.price;
-const payment=s.paymentMethod;
-const created=s.createdDate;
+if(!s.createdDate) return;
 
-if(!created) return;
+const saleDate=new Date(s.createdDate).toISOString().split("T")[0];
 
-const saleDate=new Date(created);
-const saleFormatted=
-saleDate.getFullYear()+"-"+
-String(saleDate.getMonth()+1).padStart(2,'0')+"-"+
-String(saleDate.getDate()).padStart(2,'0');
-
-if(saleFormatted===today){
+if(saleDate===today){
 
 count++;
-amount+=price*qty;
+amount+=s.price*s.quantity;
 
 body.innerHTML+=`
 <tr>
-<td>${id}</td>
-<td>${customer}</td>
-<td>${product}</td>
-<td>${qty}</td>
-<td>₹${price}</td>
-<td>${payment}</td>
-<td>${saleFormatted}</td>
+<td>${s.saleId}</td>
+<td>${s.customerName}</td>
+<td>${s.productName}</td>
+<td>${s.quantity}</td>
+<td>₹${s.price}</td>
+<td>${s.paymentMethod}</td>
+<td>${saleDate}</td>
 </tr>`;
 }
 
 });
 
-document.getElementById("count").innerText=count;
-document.getElementById("amount").innerText=amount;
+count.innerText=count;
+amount.innerText=amount;
 
 });
 }
