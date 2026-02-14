@@ -119,52 +119,52 @@ th {
 
 <div class="product-grid">
     <div class="product-item" onclick="selectProduct('Gents Belt Watch')">
-        <img src="images/gents_belt.jpg">
+        <img src="/images/gents_belt.jpg">
         <p>Gents Belt Watch</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Gents Chain Watch')">
-        <img src="images/gents_chain.jpg">
+        <img src="/images/gents_chain.jpg">
         <p>Gents Chain Watch</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
-        <img src="images/ladies_belt.jpg">
+        <img src="/images/ladies_belt.jpg">
         <p>Ladies Belt Watch</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
-        <img src="images/ladies_chain.jpg">
+        <img src="/images/ladies_chain.jpg">
         <p>Ladies Chain Watch</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Wall Clock')">
-        <img src="images/wall_clock.jpg">
+        <img src="/images/wall_clock.jpg">
         <p>Wall Clock</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Alarm Timepiece')">
-        <img src="images/alarm.jpg">
+        <img src="/images/alarm.jpg">
         <p>Alarm Timepiece</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Strap')">
-        <img src="images/strap.jpg">
+        <img src="/images/strap.jpg">
         <p>Strap</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Chain')">
-        <img src="images/chain.jpg">
+        <img src="/images/chain.jpg">
         <p>Chain</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Repair')">
-        <img src="images/repair.jpg">
+        <img src="/images/repair.jpg">
         <p>Repair</p>
     </div>
 
     <div class="product-item" onclick="selectProduct('Watch Cell')">
-        <img src="images/watch_cell.jpg">
+        <img src="/images/watch_cell.jpg">
         <p>Watch Cell</p>
     </div>
 </div>
@@ -234,41 +234,44 @@ Search by Date:
 
 <script>
 
-/* -------- IST DATE FIX -------- */
-
-function getISTDate(dateObj = new Date()) {
-    const utc = dateObj.getTime() + (dateObj.getTimezoneOffset()*60000);
-    const ist = new Date(utc + (5.5*60*60*1000));
+/* ---- IST Date Fix ---- */
+function getISTDate() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (5.5 * 60 * 60 * 1000));
     return ist.toISOString().split("T")[0];
 }
 
-/* -------- PRODUCT SELECT -------- */
-
+/* ---- Product Select ---- */
 function selectProduct(name){
     document.getElementById("productName").value = name;
     document.getElementById("quantity").value = 1;
 }
 
-/* -------- QTY + TOTAL -------- */
-
+/* ---- Quantity ---- */
 function changeQty(val){
-    let qty = parseInt(quantity.value)||1;
+    let qty = parseInt(quantity.value) || 1;
     qty += val;
-    if(qty<1) qty=1;
+    if(qty < 1) qty = 1;
     quantity.value = qty;
     calculateTotal();
 }
 
+/* ---- Total ---- */
 function calculateTotal(){
     totalAmount.value = (price.value * quantity.value) || 0;
 }
 
-price.addEventListener("input",calculateTotal);
-quantity.addEventListener("input",calculateTotal);
+price.addEventListener("input", calculateTotal);
+quantity.addEventListener("input", calculateTotal);
 
-/* -------- ADD SALE -------- */
-
+/* ---- Add Sale ---- */
 async function addSale(){
+
+    if(!productName.value || !price.value){
+        alert("Select product and enter price");
+        return;
+    }
 
     const sale = {
         customerName: customerName.value,
@@ -291,22 +294,14 @@ async function addSale(){
     totalAmount.value="";
     paymentMethod.value="CASH";
 
-    loadSales();
+    showToday();
 }
 
-/* -------- LOAD SALES -------- */
-
-async function loadSales(filterDate=null){
+/* ---- Load Sales ---- */
+async function loadSales(dateFilter){
 
     const res = await fetch("/sales");
     const sales = await res.json();
-
-    const dateToUse = filterDate || getISTDate();
-
-    const filtered = sales.filter(s=>{
-        if(!s.date) return false;
-        return s.date.split("T")[0] === dateToUse;
-    });
 
     const tbody = document.getElementById("salesBody");
     tbody.innerHTML="";
@@ -314,7 +309,14 @@ async function loadSales(filterDate=null){
     let totalCount=0;
     let totalAmount=0;
 
-    filtered.forEach(s=>{
+    sales.forEach(s=>{
+
+        if(!s.date) return;
+
+        const saleDate = s.date.split("T")[0];
+
+        if(saleDate !== dateFilter) return;
+
         totalCount++;
         totalAmount += s.price * s.quantity;
 
@@ -326,7 +328,7 @@ async function loadSales(filterDate=null){
             <td>${s.quantity}</td>
             <td>₹${s.price}</td>
             <td>${s.paymentMethod}</td>
-            <td>${s.date.split("T")[0]}</td>
+            <td>${saleDate}</td>
         </tr>`;
     });
 
@@ -334,8 +336,7 @@ async function loadSales(filterDate=null){
     document.getElementById("amount").innerText = totalAmount;
 }
 
-/* -------- DATE SEARCH -------- */
-
+/* ---- Date Controls ---- */
 function searchByDate(){
     const selected = document.getElementById("searchDate").value;
     if(!selected) return;
@@ -348,10 +349,9 @@ function showToday(){
     loadSales(today);
 }
 
+/* ---- Init ---- */
 document.addEventListener("DOMContentLoaded",()=>{
-    const today = getISTDate();
-    document.getElementById("searchDate").value = today;
-    loadSales(today);
+    showToday();
 });
 
 </script>
