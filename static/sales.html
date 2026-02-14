@@ -118,55 +118,57 @@ th {
 <h2>Select Product</h2>
 
 <div class="product-grid">
-    <div class="product-item" onclick="selectProduct('Gents Belt Watch')">
-        <img src="/images/gents_belt.jpg">
-        <p>Gents Belt Watch</p>
-    </div>
 
-    <div class="product-item" onclick="selectProduct('Gents Chain Watch')">
-        <img src="/images/gents_chain.jpg">
-        <p>Gents Chain Watch</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Gents Belt Watch')">
+<img src="images/gents_belt.jpg">
+<p>Gents Belt Watch</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
-        <img src="/images/ladies_belt.jpg">
-        <p>Ladies Belt Watch</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Gents Chain Watch')">
+<img src="images/gents_chain.jpg">
+<p>Gents Chain Watch</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
-        <img src="/images/ladies_chain.jpg">
-        <p>Ladies Chain Watch</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
+<img src="images/ladies_belt.jpg">
+<p>Ladies Belt Watch</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Wall Clock')">
-        <img src="/images/wall_clock.jpg">
-        <p>Wall Clock</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
+<img src="images/ladies_chain.jpg">
+<p>Ladies Chain Watch</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Alarm Timepiece')">
-        <img src="/images/alarm.jpg">
-        <p>Alarm Timepiece</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Wall Clock')">
+<img src="images/wall_clock.jpg">
+<p>Wall Clock</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Strap')">
-        <img src="/images/strap.jpg">
-        <p>Strap</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Alarm Timepiece')">
+<img src="images/alarm.jpg">
+<p>Alarm Timepiece</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Chain')">
-        <img src="/images/chain.jpg">
-        <p>Chain</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Strap')">
+<img src="images/strap.jpg">
+<p>Strap</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Repair')">
-        <img src="/images/repair.jpg">
-        <p>Repair</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Chain')">
+<img src="images/chain.jpg">
+<p>Chain</p>
+</div>
 
-    <div class="product-item" onclick="selectProduct('Watch Cell')">
-        <img src="/images/watch_cell.jpg">
-        <p>Watch Cell</p>
-    </div>
+<div class="product-item" onclick="selectProduct('Repair')">
+<img src="images/repair.jpg">
+<p>Repair</p>
+</div>
+
+<div class="product-item" onclick="selectProduct('Watch Cell')">
+<img src="images/watch_cell.jpg">
+<p>Watch Cell</p>
+</div>
+
 </div>
 
 <hr>
@@ -174,23 +176,22 @@ th {
 <h2>Selected Item</h2>
 
 <div class="form-grid">
-    <input id="customerName" placeholder="Customer Name">
-    <input id="productName" placeholder="Product" readonly>
+<input id="customerName" placeholder="Customer Name">
+<input id="productName" placeholder="Product" readonly>
 
-    <div class="qty-box">
-        <button onclick="changeQty(-1)">-</button>
-        <input id="quantity" type="number" value="1">
-        <button onclick="changeQty(1)">+</button>
-    </div>
+<div class="qty-box">
+<button onclick="changeQty(-1)">-</button>
+<input id="quantity" type="number" value="1">
+<button onclick="changeQty(1)">+</button>
+</div>
 
-    <input id="price" type="number" placeholder="Enter Price">
+<input id="price" type="number" placeholder="Enter Price">
+<input id="totalAmount" placeholder="Total" readonly>
 
-    <input id="totalAmount" placeholder="Total" readonly>
-
-    <select id="paymentMethod">
-        <option value="CASH">Cash</option>
-        <option value="UPI">UPI</option>
-    </select>
+<select id="paymentMethod">
+<option value="CASH">Cash</option>
+<option value="UPI">UPI</option>
+</select>
 </div>
 
 <button class="add-btn" onclick="addSale()">Add Sale</button>
@@ -199,20 +200,15 @@ th {
 
 <h2>Today’s Sales Report</h2>
 
-Search by Date:
-<input type="date" id="searchDate">
-<button onclick="searchByDate()">Search</button>
-<button onclick="showToday()">Today</button>
-
 <div class="summary">
-    <div class="box">
-        Total Sales Count<br>
-        <span id="count">0</span>
-    </div>
-    <div class="box">
-        Total Sales Amount ₹<br>
-        <span id="amount">0</span>
-    </div>
+<div class="box">
+Total Sales Count<br>
+<span id="count">0</span>
+</div>
+<div class="box">
+Total Sales Amount ₹<br>
+<span id="amount">0</span>
+</div>
 </div>
 
 <table>
@@ -234,125 +230,89 @@ Search by Date:
 
 <script>
 
-/* ---- IST Date Fix ---- */
-function getISTDate() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (5.5 * 60 * 60 * 1000));
-    return ist.toISOString().split("T")[0];
-}
-
-/* ---- Product Select ---- */
 function selectProduct(name){
-    document.getElementById("productName").value = name;
-    document.getElementById("quantity").value = 1;
+productName.value = name;
+quantity.value = 1;
 }
 
-/* ---- Quantity ---- */
 function changeQty(val){
-    let qty = parseInt(quantity.value) || 1;
-    qty += val;
-    if(qty < 1) qty = 1;
-    quantity.value = qty;
-    calculateTotal();
+let qty = parseInt(quantity.value) || 1;
+qty += val;
+if(qty < 1) qty = 1;
+quantity.value = qty;
+calculateTotal();
 }
 
-/* ---- Total ---- */
 function calculateTotal(){
-    totalAmount.value = (price.value * quantity.value) || 0;
+totalAmount.value = (price.value * quantity.value) || 0;
 }
 
 price.addEventListener("input", calculateTotal);
 quantity.addEventListener("input", calculateTotal);
 
-/* ---- Add Sale ---- */
 async function addSale(){
 
-    if(!productName.value || !price.value){
-        alert("Select product and enter price");
-        return;
-    }
-
-    const sale = {
-        customerName: customerName.value,
-        productName: productName.value,
-        quantity: +quantity.value,
-        price: +price.value,
-        paymentMethod: paymentMethod.value
-    };
-
-    await fetch("/sales/create",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(sale)
-    });
-
-    customerName.value="";
-    productName.value="";
-    quantity.value=1;
-    price.value="";
-    totalAmount.value="";
-    paymentMethod.value="CASH";
-
-    showToday();
+if(!productName.value || !price.value){
+alert("Select product and enter price");
+return;
 }
 
-/* ---- Load Sales ---- */
-async function loadSales(dateFilter){
+const sale = {
+customerName: customerName.value,
+productName: productName.value,
+quantity: +quantity.value,
+price: +price.value,
+paymentMethod: paymentMethod.value
+};
 
-    const res = await fetch("/sales");
-    const sales = await res.json();
-
-    const tbody = document.getElementById("salesBody");
-    tbody.innerHTML="";
-
-    let totalCount=0;
-    let totalAmount=0;
-
-    sales.forEach(s=>{
-
-        if(!s.date) return;
-
-        const saleDate = s.date.split("T")[0];
-
-        if(saleDate !== dateFilter) return;
-
-        totalCount++;
-        totalAmount += s.price * s.quantity;
-
-        tbody.innerHTML += `
-        <tr>
-            <td>${s.id || "-"}</td>
-            <td>${s.customerName}</td>
-            <td>${s.productName}</td>
-            <td>${s.quantity}</td>
-            <td>₹${s.price}</td>
-            <td>${s.paymentMethod}</td>
-            <td>${saleDate}</td>
-        </tr>`;
-    });
-
-    document.getElementById("count").innerText = totalCount;
-    document.getElementById("amount").innerText = totalAmount;
-}
-
-/* ---- Date Controls ---- */
-function searchByDate(){
-    const selected = document.getElementById("searchDate").value;
-    if(!selected) return;
-    loadSales(selected);
-}
-
-function showToday(){
-    const today = getISTDate();
-    document.getElementById("searchDate").value = today;
-    loadSales(today);
-}
-
-/* ---- Init ---- */
-document.addEventListener("DOMContentLoaded",()=>{
-    showToday();
+await fetch("/sales/create",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(sale)
 });
+
+customerName.value="";
+productName.value="";
+quantity.value=1;
+price.value="";
+totalAmount.value="";
+paymentMethod.value="CASH";
+
+loadSales();
+}
+
+async function loadSales(){
+
+const res = await fetch("/sales");
+const sales = await res.json();
+
+const tbody = document.getElementById("salesBody");
+tbody.innerHTML="";
+
+let totalCount=0;
+let totalAmount=0;
+
+sales.forEach(s=>{
+totalCount++;
+totalAmount += s.price * s.quantity;
+
+tbody.innerHTML += `
+<tr>
+<td>${s.id || "-"}</td>
+<td>${s.customerName}</td>
+<td>${s.productName}</td>
+<td>${s.quantity}</td>
+<td>₹${s.price}</td>
+<td>${s.paymentMethod}</td>
+<td>${s.date ? s.date.split("T")[0] : "-"}</td>
+</tr>`;
+});
+
+document.getElementById("count").innerText = totalCount;
+document.getElementById("amount").innerText = totalAmount;
+}
+
+document.addEventListener("DOMContentLoaded", loadSales);
 
 </script>
 
