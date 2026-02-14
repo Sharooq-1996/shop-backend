@@ -274,13 +274,26 @@ function loadSales(){
         const tbody = document.getElementById("salesBody");
         tbody.innerHTML="";
 
+        if(data.length === 0){
+            document.getElementById("count").innerText = 0;
+            document.getElementById("amount").innerText = 0;
+            return;
+        }
+
+        // 🔥 Find latest date from database
+        let latestDate = data[0].date;
+
+        data.forEach(sale=>{
+            if(sale.date > latestDate){
+                latestDate = sale.date;
+            }
+        });
+
         let totalAmountSum = 0;
         let totalCount = 0;
 
-        const today = new Date().toLocaleDateString("en-CA");
-
         data.forEach(sale=>{
-            if(sale.date === today){
+            if(sale.date === latestDate){
 
                 totalCount++;
                 totalAmountSum += Number(sale.price);
@@ -302,6 +315,7 @@ function loadSales(){
         document.getElementById("amount").innerText = totalAmountSum;
     });
 }
+
 
 loadProducts();
 loadSales();
