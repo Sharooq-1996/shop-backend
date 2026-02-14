@@ -12,7 +12,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-/* ---------------- MODEL ---------------- */
+/* ---------- MODEL ---------- */
 
 type Sale struct {
 	SaleID        int       `json:"saleId"`
@@ -26,35 +26,40 @@ type Sale struct {
 
 var db *sql.DB
 
-/* ---------------- MAIN ---------------- */
+/* ---------- MAIN ---------- */
 
 func main() {
+	var err error
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		log.Fatal("DATABASE_URL not set")
+		log.Fatal("❌ DATABASE_URL not set")
 	}
 
-	var err error
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("❌ DB open error:", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		log.Fatal(err)
+		log.Fatal("❌ DB ping failed:", err)
 	}
+
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	ensureTables()
 
-	log.Println("✅ Database connected")
+	log.Println("✅ Database ready")
 
+	/* Routes */
+	http.HandleFunc("/health", health)
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 	http.HandleFunc("/sales/delete", deleteSale)
-	http.HandleFunc("/health", health)
 
-	// Static folder
+	/* Static */
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	port := os.Getenv("PORT")
@@ -62,15 +67,15 @@ func main() {
 		port = "10000"
 	}
 
-	log.Println("🚀 Server running on port", port)
+	log.Println("🚀 Server running on", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-/* ---------------- TABLE CREATION ---------------- */
+/* ---------- CREATE TABLE ---------- */
 
 func ensureTables() {
 
-	query := `
+	createTable := `
 	CREATE TABLE IF NOT EXISTS sales (
 		sale_id SERIAL PRIMARY KEY,
 		customer_name TEXT NOT NULL,
@@ -78,19 +83,25 @@ func ensureTables() {
 		quantity INT NOT NULL,
 		price NUMERIC(10,2) NOT NULL,
 		payment_method TEXT DEFAULT 'CASH',
-		created_date TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Asia/Kolkata')
+		created_date TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')
 	);
 	`
-
-	_, err := db.Exec(query)
-	if err != nil {
-		log.Fatal("Failed creating table:", err)
+	if _, err := db.Exec(createTable); err != nil {
+		log.Fatal("❌ Table creation failed:", err)
 	}
 
-	log.Println("✅ sales table ready")
+	log.Println("✅ sales table ready (IST enabled)")
 }
 
-/* ---------------- GET SALES ---------------- */
+/* ---------- HEALTH ---------- */
+
+func health(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
+/* ---------- GET SALES ---------- */
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
@@ -109,9 +120,10 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		       created_date
 		FROM sales
 		ORDER BY created_date DESC
+		LIMIT 500
 	`)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -130,7 +142,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 			&s.CreatedDate,
 		)
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		sales = append(sales, s)
@@ -139,36 +151,37 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sales)
 }
 
-/* ---------------- CREATE SALE ---------------- */
+/* ---------- CREATE SALE ---------- */
 
 func createSale(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
 
+	if r.Method == http.MethodOptions {
+		return
+	}
+
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var sale Sale
-	err := json.NewDecoder(r.Body).Decode(&sale)
-	if err != nil {
-		http.Error(w, err.Error(), 400)
+	if err := json.NewDecoder(r.Body).Decode(&sale); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = db.ExecContext(ctx, `
+	_, err := db.ExecContext(ctx, `
 		INSERT INTO sales (
 			customer_name,
 			product_name,
 			quantity,
 			price,
-			payment_method,
-			created_date
-		)
-		VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'Asia/Kolkata')
+			payment_method
+		) VALUES ($1,$2,$3,$4,$5)
 	`,
 		sale.CustomerName,
 		sale.ProductName,
@@ -178,7 +191,7 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -187,45 +200,43 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-/* ---------------- DELETE SALE ---------------- */
+/* ---------- DELETE SALE ---------- */
 
 func deleteSale(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req struct {
+	var data struct {
 		SaleID int `json:"saleId"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, err.Error(), 400)
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM sales WHERE sale_id=$1", req.SaleID)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := db.ExecContext(ctx, `
+		DELETE FROM sales WHERE sale_id = $1
+	`, data.SaleID)
+
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Sale deleted successfully",
+		"message": "Sale deleted",
 	})
 }
 
-/* ---------------- HEALTH ---------------- */
-
-func health(w http.ResponseWriter, r *http.Request) {
-	enableCORS(w)
-	w.Write([]byte("OK"))
-}
-
-/* ---------------- CORS ---------------- */
+/* ---------- CORS ---------- */
 
 func enableCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
