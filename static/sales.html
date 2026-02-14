@@ -290,7 +290,7 @@ totalAmount.value="";
 
 /* LOAD SALES */
 function loadSales(){
-fetch("/sales/today")
+fetch("/sales")
 .then(res=>res.json())
 .then(data=>{
 const body=document.getElementById("salesBody");
@@ -298,8 +298,9 @@ body.innerHTML="";
 let total=0;
 
 data.forEach(s=>{
-total+=s.price*s.quantity;
-body.innerHTML+=`
+total += s.price * s.quantity;
+
+body.innerHTML += `
 <tr>
 <td>${s.id}</td>
 <td>${s.customerName}</td>
@@ -307,15 +308,16 @@ body.innerHTML+=`
 <td>${s.quantity}</td>
 <td>₹${s.price}</td>
 <td>${s.paymentMethod}</td>
-<td>${new Date(s.createdAt).toLocaleString()}</td>
+<td>${s.createdAt}</td>
 <td><button class="print-btn" onclick="window.print()">Print</button></td>
 </tr>`;
 });
 
-count.innerText=data.length;
-amount.innerText=total;
+document.getElementById("count").innerText = data.length;
+document.getElementById("amount").innerText = total;
 });
 }
+
 
 loadProducts();
 loadSales();
