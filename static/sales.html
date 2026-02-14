@@ -295,15 +295,18 @@ fetch("/sales")
 .then(data=>{
 const body=document.getElementById("salesBody");
 body.innerHTML="";
-let total=0;
 let todayCount=0;
 let todayAmount=0;
 
-const today = new Date().toISOString().split("T")[0];
+// Get today's date in LOCAL TIME (India safe)
+const now = new Date();
+const today =
+  now.getFullYear() + "-" +
+  String(now.getMonth()+1).padStart(2,'0') + "-" +
+  String(now.getDate()).padStart(2,'0');
 
 data.forEach(s=>{
 
-// Fix field names (match Go struct)
 const id = s.ID;
 const customer = s.CustomerName;
 const product = s.ProductName;
@@ -312,11 +315,16 @@ const price = s.Price;
 const payment = s.PaymentMethod;
 const created = s.CreatedAt;
 
-// Convert date
-const saleDate = created ? created.split("T")[0] : "";
+if(!created) return;
 
-// SHOW ONLY TODAY SALES
-if(saleDate === today){
+const saleDate = new Date(created);
+const saleFormatted =
+  saleDate.getFullYear() + "-" +
+  String(saleDate.getMonth()+1).padStart(2,'0') + "-" +
+  String(saleDate.getDate()).padStart(2,'0');
+
+// Compare local formatted date
+if(saleFormatted === today){
 
 todayCount++;
 todayAmount += price * qty;
@@ -329,7 +337,7 @@ body.innerHTML += `
 <td>${qty}</td>
 <td>₹${price}</td>
 <td>${payment}</td>
-<td>${saleDate}</td>
+<td>${saleFormatted}</td>
 <td><button class="print-btn" onclick="window.print()">Print</button></td>
 </tr>`;
 }
@@ -341,6 +349,7 @@ document.getElementById("amount").innerText = todayAmount;
 
 });
 }
+
 
 
 
