@@ -4,13 +4,12 @@
 <title>Sales – Ayan Watch and Electronics</title>
 
 <style>
-body {
-    font-family: Arial, sans-serif;
+body{
+    font-family: Arial;
     background:#eef2f3;
     padding:20px;
 }
-
-.container {
+.container{
     background:#fff;
     padding:25px;
     max-width:1200px;
@@ -18,56 +17,45 @@ body {
     border-radius:12px;
     box-shadow:0 10px 25px rgba(0,0,0,0.15);
 }
+h2{ margin-top:30px; }
 
-h2 { margin-top:30px; }
-
-.product-grid {
+.product-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:15px;
     margin-bottom:25px;
 }
-
-.product-item {
+.product-item{
     border:1px solid #ddd;
     border-radius:10px;
     text-align:center;
     padding:15px;
     cursor:pointer;
 }
-
-.product-item img {
+.product-item img{
     width:90px;
     height:90px;
     object-fit:cover;
 }
-
-.product-item:hover {
+.product-item:hover{
     background:#eaf3ff;
 }
 
-.form-grid {
+.form-grid{
     display:grid;
     grid-template-columns:repeat(2,1fr);
     gap:12px;
 }
-
-.form-grid input, .form-grid select {
+.form-grid input,.form-grid select{
     padding:10px;
     border-radius:6px;
     border:1px solid #ccc;
 }
 
-.qty-box {
-    display:flex;
-    gap:6px;
-}
+.qty-box{ display:flex; gap:6px; }
+.qty-box button{ padding:6px 12px; }
 
-.qty-box button {
-    padding:6px 12px;
-}
-
-.add-btn {
+.add-btn{
     padding:12px 35px;
     background:#28a745;
     color:white;
@@ -77,13 +65,12 @@ h2 { margin-top:30px; }
     cursor:pointer;
 }
 
-.summary {
+.summary{
     display:flex;
     gap:20px;
     margin:20px 0;
 }
-
-.box {
+.box{
     flex:1;
     background:#f1f7ff;
     padding:18px;
@@ -93,20 +80,23 @@ h2 { margin-top:30px; }
     font-size:18px;
 }
 
-table {
+table{
     width:100%;
     border-collapse:collapse;
 }
-
-th, td {
+th,td{
     border:1px solid #ddd;
     padding:8px;
     text-align:center;
 }
-
-th {
+th{
     background:#1f7ae0;
     color:white;
+}
+
+.date-filter{
+    margin-top:10px;
+    margin-bottom:15px;
 }
 </style>
 </head>
@@ -198,7 +188,14 @@ th {
 
 <hr>
 
-<h2>Today’s Sales Report</h2>
+<h2>Sales Report</h2>
+
+<div class="date-filter">
+Search by Date:
+<input type="date" id="searchDate">
+<button onclick="searchByDate()">Search</button>
+<button onclick="loadToday()">Today</button>
+</div>
 
 <div class="summary">
 <div class="box">
@@ -230,9 +227,17 @@ Total Sales Amount ₹<br>
 
 <script>
 
+function getISTDate(){
+const now = new Date();
+const utc = now.getTime() + (now.getTimezoneOffset()*60000);
+const ist = new Date(utc + (5.5*60*60*1000));
+return ist.toISOString().split("T")[0];
+}
+
 function selectProduct(name){
 productName.value = name;
 quantity.value = 1;
+calculateTotal();
 }
 
 function changeQty(val){
@@ -247,8 +252,8 @@ function calculateTotal(){
 totalAmount.value = (price.value * quantity.value) || 0;
 }
 
-price.addEventListener("input", calculateTotal);
-quantity.addEventListener("input", calculateTotal);
+price.addEventListener("input",calculateTotal);
+quantity.addEventListener("input",calculateTotal);
 
 async function addSale(){
 
@@ -278,10 +283,10 @@ price.value="";
 totalAmount.value="";
 paymentMethod.value="CASH";
 
-loadSales();
+loadToday();
 }
 
-async function loadSales(){
+async function loadSalesByDate(date){
 
 const res = await fetch("/sales");
 const sales = await res.json();
@@ -293,6 +298,13 @@ let totalCount=0;
 let totalAmount=0;
 
 sales.forEach(s=>{
+
+if(!s.date) return;
+
+const saleDate = s.date.split("T")[0];
+
+if(saleDate === date){
+
 totalCount++;
 totalAmount += s.price * s.quantity;
 
@@ -304,15 +316,30 @@ tbody.innerHTML += `
 <td>${s.quantity}</td>
 <td>₹${s.price}</td>
 <td>${s.paymentMethod}</td>
-<td>${s.date ? s.date.split("T")[0] : "-"}</td>
+<td>${saleDate}</td>
 </tr>`;
+}
 });
 
-document.getElementById("count").innerText = totalCount;
-document.getElementById("amount").innerText = totalAmount;
+count.innerText = totalCount;
+amount.innerText = totalAmount;
 }
 
-document.addEventListener("DOMContentLoaded", loadSales);
+function loadToday(){
+const today = getISTDate();
+searchDate.value = today;
+loadSalesByDate(today);
+}
+
+function searchByDate(){
+const selected = searchDate.value;
+if(!selected) return;
+loadSalesByDate(selected);
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+loadToday();
+});
 
 </script>
 
