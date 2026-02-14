@@ -6,12 +6,28 @@
 <style>
 body {
     font-family: Arial, sans-serif;
-    background:#eef2f3;
-    padding:20px;
+    background:
+      linear-gradient(rgba(238,242,243,0.75), rgba(238,242,243,0.75)),
+      url("logo.png") center/420px no-repeat fixed;
+    padding: 20px;
+}
+
+.shop-header {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:15px;
+    margin-bottom:20px;
+}
+.shop-header img { height:60px; }
+.shop-name {
+    font-size:30px;
+    font-weight:bold;
+    color:#1f7ae0;
 }
 
 .container {
-    background:#fff;
+    background:rgba(255,255,255,0.97);
     padding:25px;
     max-width:1200px;
     margin:auto;
@@ -19,139 +35,110 @@ body {
     box-shadow:0 10px 25px rgba(0,0,0,0.15);
 }
 
-.product-grid {
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:15px;
-    margin-bottom:20px;
+.category-tabs {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:15px;
 }
-
-.product-item {
-    border:1px solid #ddd;
-    padding:10px;
-    border-radius:10px;
-    text-align:center;
+.category-tabs button {
+    padding:6px 14px;
+    border:none;
+    background:#1f7ae0;
+    color:white;
+    border-radius:6px;
     cursor:pointer;
 }
 
-.product-item img{
-    width:90px;
-    height:90px;
-    object-fit:cover;
+.product-grid {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-bottom:20px;
+}
+.product-item {
+    border:1px solid #ddd;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+    cursor:pointer;
+    background:#fff;
+}
+.product-item:hover { background:#eaf3ff; }
+.product-item img {
+    width:100px;
+    height:100px;
+    object-fit:contain;
 }
 
-.form-grid{
+.form-grid {
     display:grid;
     grid-template-columns:repeat(2,1fr);
     gap:12px;
 }
-
-input, select{
+.form-grid input, .form-grid select {
     padding:10px;
     border-radius:6px;
     border:1px solid #ccc;
 }
 
-.add-btn{
-    margin-top:15px;
-    padding:10px 30px;
+.qty-box {
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+.qty-box button {
+    padding:6px 12px;
+    font-size:18px;
+}
+
+.add-btn {
+    padding:12px 35px;
+    font-size:16px;
     background:#28a745;
-    color:#fff;
+    color:white;
     border:none;
     border-radius:6px;
     cursor:pointer;
+    margin-top:15px;
 }
 
-.summary{
-    display:flex;
-    gap:20px;
-    margin:20px 0;
-}
-
-.box{
+.summary { display:flex; gap:15px; margin:20px 0; flex-wrap:wrap; }
+.box {
     flex:1;
     background:#f1f7ff;
     padding:18px;
     border-radius:10px;
     text-align:center;
+    font-size:18px;
     font-weight:bold;
 }
 
-table{
-    width:100%;
-    border-collapse:collapse;
-}
+table { width:100%; border-collapse:collapse; }
+th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+th { background:#1f7ae0; color:white; }
 
-th,td{
-    border:1px solid #ddd;
-    padding:8px;
-    text-align:center;
-}
-
-th{
-    background:#1f7ae0;
-    color:white;
+@media (max-width:700px){
+    .form-grid { grid-template-columns:1fr; }
+    .product-grid { grid-template-columns:repeat(2,1fr); }
 }
 </style>
 </head>
 
 <body>
 
+<div class="shop-header">
+    <img src="logo.png">
+    <div class="shop-name">Ayan Watch and Electronics</div>
+</div>
+
 <div class="container">
 
 <h2>Select Product</h2>
 
-<div class="product-grid">
-    <div class="product-item" onclick="selectProduct('Gents Belt Watch')">
-        <img src="gents-belt.png">
-        <p>Gents Belt Watch</p>
-    </div>
+<div class="product-grid" id="productGrid"></div>
 
-    <div class="product-item" onclick="selectProduct('Gents Chain Watch')">
-        <img src="gents-chain.png">
-        <p>Gents Chain Watch</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
-        <img src="ladies-belt.png">
-        <p>Ladies Belt Watch</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
-        <img src="ladies-chain.png">
-        <p>Ladies Chain Watch</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Wall Clock')">
-        <img src="wall-clock.png">
-        <p>Wall Clock</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Alarm Timepiece')">
-        <img src="alarm.png">
-        <p>Alarm Timepiece</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Strap')">
-        <img src="straps.png">
-        <p>Strap</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Chain')">
-        <img src="chain.png">
-        <p>Chain</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Repair')">
-        <img src="repair.png">
-        <p>Repair</p>
-    </div>
-
-    <div class="product-item" onclick="selectProduct('Watch Cell')">
-        <img src="watch-cell.png">
-        <p>Watch Cell</p>
-    </div>
-</div>
+<hr>
 
 <h2>Selected Item</h2>
 
@@ -159,9 +146,13 @@ th{
     <input id="customerName" placeholder="Customer Name">
     <input id="productName" placeholder="Product" readonly>
 
-    <input id="quantity" type="number" value="1">
-    <input id="price" type="number" placeholder="Enter Price">
+    <div class="qty-box">
+        <button onclick="changeQty(-1)">-</button>
+        <input id="quantity" type="number" value="1">
+        <button onclick="changeQty(1)">+</button>
+    </div>
 
+    <input id="price" type="number" placeholder="Enter Price">
     <input id="totalAmount" placeholder="Total" readonly>
 
     <select id="paymentMethod">
@@ -172,18 +163,13 @@ th{
 
 <button class="add-btn" onclick="addSale()">Add Sale</button>
 
+<hr>
+
 <h2>Today’s Sales Report</h2>
 
 <div class="summary">
-    <div class="box">
-        Total Sales Count<br>
-        <span id="count">0</span>
-    </div>
-
-    <div class="box">
-        Total Sales Amount ₹<br>
-        <span id="amount">0</span>
-    </div>
+    <div class="box">Total Sales Count<br><span id="count">0</span></div>
+    <div class="box">Total Sales Amount ₹<br><span id="amount">0</span></div>
 </div>
 
 <table>
@@ -205,44 +191,81 @@ th{
 
 <script>
 
+/* PRODUCTS (Manual pricing) */
+const products = [
+{name:"Gents Belt Watch",img:"gents-belt.png"},
+{name:"Gents Chain Watch",img:"gents-chain.png"},
+{name:"Ladies Belt Watch",img:"ladies-belt.png"},
+{name:"Ladies Chain Watch",img:"ladies-chain.png"},
+{name:"Wall Clock",img:"wall-clock.png"},
+{name:"Alarm Timepiece",img:"alarm.png"},
+{name:"Strap",img:"straps.png"},
+{name:"Chain",img:"chain.png"},
+{name:"Repair",img:"repair.png"},
+{name:"Watch Cell",img:"watch-cell.png"}
+];
+
+function loadProducts(){
+    const grid=document.getElementById("productGrid");
+    grid.innerHTML="";
+    products.forEach(p=>{
+        grid.innerHTML+=`
+        <div class="product-item" onclick="selectProduct('${p.name}')">
+            <img src="${p.img}">
+            <p>${p.name}</p>
+        </div>`;
+    });
+}
+
 function selectProduct(name){
-    document.getElementById("productName").value = name;
+    document.getElementById("productName").value=name;
+    document.getElementById("quantity").value=1;
+}
+
+function changeQty(val){
+    let qty=parseInt(quantity.value)||1;
+    qty+=val;
+    if(qty<1) qty=1;
+    quantity.value=qty;
+    calculateTotal();
+}
+
+function calculateTotal(){
+    const priceVal = parseFloat(price.value)||0;
+    const qtyVal = parseInt(quantity.value)||0;
+    totalAmount.value = priceVal * qtyVal;
 }
 
 price.addEventListener("input",calculateTotal);
 quantity.addEventListener("input",calculateTotal);
 
-function calculateTotal(){
-    const qty = Number(quantity.value) || 0;
-    const pr = Number(price.value) || 0;
-    totalAmount.value = qty * pr;
-}
-
+/* SAVE SALE */
 function addSale(){
-    const sale = {
-        customerName: customerName.value,
-        productName: productName.value,
-        quantity: Number(quantity.value),
-        price: Number(price.value),
-        paymentMethod: paymentMethod.value
+
+    const sale={
+        customerName:customerName.value,
+        productName:productName.value,
+        quantity:+quantity.value,
+        price:+price.value,
+        paymentMethod:paymentMethod.value
     };
 
     fetch("/sales/create",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify(sale)
-    })
-    .then(res=>res.json())
-    .then(()=>{
+    }).then(()=>{
         customerName.value="";
         productName.value="";
         quantity.value=1;
         price.value="";
         totalAmount.value="";
+        paymentMethod.value="CASH";
         loadSales();
     });
 }
 
+/* LOAD TODAY SALES (Indian Time Safe) */
 function loadSales(){
     fetch("/sales")
     .then(res=>res.json())
@@ -254,10 +277,9 @@ function loadSales(){
         let totalAmountSum = 0;
         let totalCount = 0;
 
-        const today = new Date().toISOString().split("T")[0];
+        const today = new Date().toLocaleDateString("en-CA");
 
         data.forEach(sale=>{
-
             if(sale.date === today){
 
                 totalCount++;
@@ -272,8 +294,7 @@ function loadSales(){
                     <td>₹${sale.price}</td>
                     <td>${sale.paymentMethod}</td>
                     <td>${sale.date}</td>
-                </tr>
-                `;
+                </tr>`;
             }
         });
 
@@ -282,6 +303,7 @@ function loadSales(){
     });
 }
 
+loadProducts();
 loadSales();
 
 </script>
