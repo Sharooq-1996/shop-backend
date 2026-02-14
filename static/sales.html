@@ -87,6 +87,13 @@ th{
     padding:5px 10px;
     cursor:pointer;
 }
+.delete-btn{
+    background:#dc3545;
+    color:white;
+    border:none;
+    padding:5px 10px;
+    cursor:pointer;
+}
 .filters{
     margin:15px 0;
 }
@@ -100,7 +107,6 @@ th{
 <h2>Select Product</h2>
 
 <div class="product-grid">
-
 <div class="product-item" onclick="selectProduct('Gents Belt Watch')"><img src="gents-belt.png"><p>Gents Belt Watch</p></div>
 <div class="product-item" onclick="selectProduct('Gents Chain Watch')"><img src="gents-chain.png"><p>Gents Chain Watch</p></div>
 <div class="product-item" onclick="selectProduct('Ladies Belt Watch')"><img src="ladies-belt.png"><p>Ladies Belt Watch</p></div>
@@ -111,7 +117,6 @@ th{
 <div class="product-item" onclick="selectProduct('Chain')"><img src="chain.png"><p>Chain</p></div>
 <div class="product-item" onclick="selectProduct('Repair')"><img src="repair.png"><p>Repair</p></div>
 <div class="product-item" onclick="selectProduct('Watch Cell')"><img src="watch-cell.png"><p>Watch Cell</p></div>
-
 </div>
 
 <h2>Selected Item</h2>
@@ -154,7 +159,7 @@ Search Date:
 <th>Price</th>
 <th>Payment</th>
 <th>Date & Time</th>
-<th>Print</th>
+<th>Actions</th>
 </tr>
 </thead>
 <tbody id="salesBody"></tbody>
@@ -164,19 +169,19 @@ Search Date:
 
 <script>
 
-/* IST FORMAT */
+/* ---------- IST Helpers ---------- */
+
 function formatIST(dateStr){
     const d = new Date(dateStr);
-
-    return d.toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true
+    return d.toLocaleString("en-IN",{
+        timeZone:"Asia/Kolkata",
+        day:"2-digit",
+        month:"2-digit",
+        year:"numeric",
+        hour:"2-digit",
+        minute:"2-digit",
+        second:"2-digit",
+        hour12:true
     });
 }
 
@@ -184,122 +189,157 @@ function getTodayIST(){
     return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 }
 
-/* SELECT PRODUCT */
+/* ---------- Product ---------- */
+
 function selectProduct(name){
     productName.value=name;
 }
 
-/* TOTAL */
+/* ---------- Total ---------- */
+
 price.addEventListener("input",calculateTotal);
 quantity.addEventListener("input",calculateTotal);
+
 function calculateTotal(){
     totalAmount.value=(price.value*quantity.value)||0;
 }
 
-/* ADD SALE */
+/* ---------- Add Sale ---------- */
+
 async function addSale(){
-    if(!productName.value || !price.value){
-        alert("Select product and enter price");
-        return;
-    }
 
-    const sale={
-        customerName:customerName.value,
-        productName:productName.value,
-        quantity:+quantity.value,
-        price:+price.value,
-        paymentMethod:paymentMethod.value
-    };
-
-    await fetch("/sales/create",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(sale)
-    });
-
-    customerName.value="";
-    productName.value="";
-    quantity.value=1;
-    price.value="";
-    totalAmount.value="";
-    paymentMethod.value="CASH";
-
-    loadSales();
+if(!productName.value || !price.value){
+alert("Select product and enter price");
+return;
 }
 
-/* LOAD SALES */
+const sale={
+customerName:customerName.value,
+productName:productName.value,
+quantity:+quantity.value,
+price:+price.value,
+paymentMethod:paymentMethod.value
+};
+
+await fetch("/sales/create",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(sale)
+});
+
+customerName.value="";
+productName.value="";
+quantity.value=1;
+price.value="";
+totalAmount.value="";
+paymentMethod.value="CASH";
+
+loadSales();
+}
+
+/* ---------- Load Sales ---------- */
+
 async function loadSales(filterDate=null){
 
-    const res=await fetch("/sales");
-    const data=await res.json();
+const res=await fetch("/sales");
+const data=await res.json();
 
-    const body=document.getElementById("salesBody");
-    body.innerHTML="";
+const body=document.getElementById("salesBody");
+body.innerHTML="";
 
-    let count=0;
-    let amount=0;
+let count=0;
+let amount=0;
 
-    const today=getTodayIST();
-    const dateToUse=filterDate || today;
+const today=getTodayIST();
+const dateToUse=filterDate||today;
 
-    data.forEach(s=>{
-        if(!s.createdDate) return;
+data.forEach(s=>{
 
-        const saleDate=new Date(s.createdDate)
-            .toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+if(!s.createdDate) return;
 
-        if(saleDate===dateToUse){
+const saleDate=new Date(s.createdDate)
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 
-            count++;
-            amount+=s.price*s.quantity;
+if(saleDate===dateToUse){
 
-            body.innerHTML+=`
-            <tr>
-            <td>${s.saleId}</td>
-            <td>${s.customerName}</td>
-            <td>${s.productName}</td>
-            <td>${s.quantity}</td>
-            <td>₹${s.price}</td>
-            <td>${s.paymentMethod}</td>
-            <td>${formatIST(s.createdDate)}</td>
-            <td><button class="print-btn" onclick='printBill(${JSON.stringify(s)})'>Print</button></td>
-            </tr>`;
-        }
-    });
+count++;
+amount+=s.price*s.quantity;
 
-    document.getElementById("count").innerText=count;
-    document.getElementById("amount").innerText=amount;
+body.innerHTML+=`
+<tr>
+<td>${s.saleId}</td>
+<td>${s.customerName}</td>
+<td>${s.productName}</td>
+<td>${s.quantity}</td>
+<td>₹${s.price}</td>
+<td>${s.paymentMethod}</td>
+<td>${formatIST(s.createdDate)}</td>
+<td>
+<button class="print-btn" onclick="printBill(${s.saleId})">Print</button>
+<button class="delete-btn" onclick="deleteSale(${s.saleId})">Delete</button>
+</td>
+</tr>`;
 }
 
-/* FILTER */
+});
+
+count.innerText=count;
+amount.innerText=amount;
+}
+
+/* ---------- Filter ---------- */
+
 function filterByDate(){
-    const selected=document.getElementById("searchDate").value;
-    if(selected){
-        loadSales(selected);
-    }
+const selected=document.getElementById("searchDate").value;
+if(selected){
+loadSales(selected);
+}
 }
 
-/* PRINT BILL */
-function printBill(sale){
-    const win=window.open("","","width=300,height=600");
-    win.document.write(`
-        <html>
-        <body style="font-family:monospace">
-        <h3 style="text-align:center">AYAN WATCH & ELECTRONICS</h3>
-        <hr>
-        Customer: ${sale.customerName}<br>
-        Product : ${sale.productName}<br>
-        Qty     : ${sale.quantity}<br>
-        Price   : ₹${sale.price}<br>
-        Payment : ${sale.paymentMethod}<br>
-        Date    : ${formatIST(sale.createdDate)}
-        <hr>
-        <center>Thank You Visit Again</center>
-        </body>
-        </html>
-    `);
-    win.document.close();
-    win.print();
+/* ---------- Print ---------- */
+
+async function printBill(id){
+const res=await fetch("/sales");
+const data=await res.json();
+const sale=data.find(s=>s.saleId===id);
+if(!sale) return;
+
+const win=window.open("","","width=300,height=600");
+
+win.document.write(`
+<html>
+<body style="font-family:monospace">
+<h3 style="text-align:center">AYAN WATCH & ELECTRONICS</h3>
+<hr>
+Customer: ${sale.customerName}<br>
+Product : ${sale.productName}<br>
+Qty     : ${sale.quantity}<br>
+Price   : ₹${sale.price}<br>
+Payment : ${sale.paymentMethod}<br>
+Date    : ${formatIST(sale.createdDate)}
+<hr>
+<center>Thank You Visit Again</center>
+</body>
+</html>
+`);
+
+win.document.close();
+win.print();
+}
+
+/* ---------- Delete ---------- */
+
+async function deleteSale(id){
+
+if(!confirm("Are you sure to delete this sale?")) return;
+
+await fetch("/sales/delete",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({saleId:id})
+});
+
+loadSales();
 }
 
 document.addEventListener("DOMContentLoaded",loadSales);
