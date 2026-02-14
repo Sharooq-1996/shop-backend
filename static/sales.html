@@ -92,52 +92,52 @@ th{
 <div class="product-grid">
 
 <div class="product-item" onclick="selectProduct('Gents Belt Watch')">
-<img src="gents-belt.png">
+<img src="images/gents_belt.jpg">
 <p>Gents Belt Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Gents Chain Watch')">
-<img src="gents-chain.png">
+<img src="images/gents_chain.jpg">
 <p>Gents Chain Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
-<img src="ladies-belt.png">
+<img src="images/ladies_belt.jpg">
 <p>Ladies Belt Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
-<img src="ladies-chain.png">
+<img src="images/ladies_chain.jpg">
 <p>Ladies Chain Watch</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Wall Clock')">
-<img src="wall-clock.png">
+<img src="images/wall_clock.jpg">
 <p>Wall Clock</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Alarm Timepiece')">
-<img src="alarm.png">
+<img src="images/alarm.jpg">
 <p>Alarm Timepiece</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Strap')">
-<img src="straps.png">
+<img src="images/strap.jpg">
 <p>Strap</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Chain')">
-<img src="chain.png">
+<img src="images/chain.jpg">
 <p>Chain</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Repair')">
-<img src="repair.png">
+<img src="images/repair.jpg">
 <p>Repair</p>
 </div>
 
 <div class="product-item" onclick="selectProduct('Watch Cell')">
-<img src="watch-cell.png">
+<img src="images/watch_cell.jpg">
 <p>Watch Cell</p>
 </div>
 
@@ -185,18 +185,31 @@ th{
 
 <script>
 
+function getISTDate(){
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (5.5 * 60 * 60 * 1000));
+    return ist.toISOString().split("T")[0];
+}
+
 function selectProduct(name){
-document.getElementById("productName").value=name;
+    productName.value=name;
 }
 
 price.addEventListener("input",calculateTotal);
 quantity.addEventListener("input",calculateTotal);
 
 function calculateTotal(){
-totalAmount.value=(price.value*quantity.value)||0;
+    totalAmount.value=(price.value*quantity.value)||0;
 }
 
-function addSale(){
+async function addSale(){
+
+if(!productName.value || !price.value){
+alert("Select product and enter price");
+return;
+}
+
 const sale={
 customerName:customerName.value,
 productName:productName.value,
@@ -205,24 +218,34 @@ price:+price.value,
 paymentMethod:paymentMethod.value
 };
 
-fetch("/sales/create",{
+await fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(sale)
-}).then(()=>loadSales());
+});
+
+customerName.value="";
+productName.value="";
+quantity.value=1;
+price.value="";
+totalAmount.value="";
+paymentMethod.value="CASH";
+
+loadSales();
 }
 
-function loadSales(){
-fetch("/sales")
-.then(res=>res.json())
-.then(data=>{
+async function loadSales(){
+
+const res=await fetch("/sales");
+const data=await res.json();
 
 const body=document.getElementById("salesBody");
 body.innerHTML="";
+
 let count=0;
 let amount=0;
 
-const today=new Date().toISOString().split("T")[0];
+const today=getISTDate();
 
 data.forEach(s=>{
 
@@ -237,7 +260,7 @@ amount+=s.price*s.quantity;
 
 body.innerHTML+=`
 <tr>
-<td>${s.saleId}</td>
+<td>${s.id}</td>
 <td>${s.customerName}</td>
 <td>${s.productName}</td>
 <td>${s.quantity}</td>
@@ -249,13 +272,12 @@ body.innerHTML+=`
 
 });
 
-count.innerText=count;
-amount.innerText=amount;
+document.getElementById("count").innerText=count;
+document.getElementById("amount").innerText=amount;
 
-});
 }
 
-loadSales();
+document.addEventListener("DOMContentLoaded",loadSales);
 
 </script>
 
