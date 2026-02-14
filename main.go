@@ -1,123 +1,234 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Sales – Ayan Watch and Electronics</title>
+package main
 
-<style>
-body{font-family:Arial;background:#eef2f3;padding:20px;}
-.container{max-width:1200px;margin:auto;background:white;padding:20px;border-radius:10px;}
-.summary{display:flex;gap:20px;margin:20px 0;}
-.box{flex:1;background:#f1f7ff;padding:20px;text-align:center;font-weight:bold;border-radius:10px;}
-table{width:100%;border-collapse:collapse;}
-th,td{border:1px solid #ddd;padding:8px;text-align:center;}
-th{background:#1f7ae0;color:white;}
-button{padding:6px 12px;cursor:pointer;}
-.delete-btn{background:red;color:white;border:none;}
-.print-btn{background:#007bff;color:white;border:none;}
-</style>
-</head>
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"log"
+	"net/http"
+	"os"
+	"time"
 
-<body>
+	_ "github.com/lib/pq"
+)
 
-<div class="container">
+/* ---------------- MODEL ---------------- */
 
-<h2>Today’s Sales Report</h2>
-
-<div class="summary">
-<div class="box">Total Sales Count<br><span id="count">0</span></div>
-<div class="box">Total Sales Amount ₹<br><span id="amount">0</span></div>
-</div>
-
-<table>
-<thead>
-<tr>
-<th>ID</th>
-<th>Customer</th>
-<th>Product</th>
-<th>Qty</th>
-<th>Price</th>
-<th>Payment</th>
-<th>Date & Time</th>
-<th>Print</th>
-<th>Delete</th>
-</tr>
-</thead>
-<tbody id="salesBody"></tbody>
-</table>
-
-</div>
-
-<script>
-
-function formatIST(dateStr){
-    return new Date(dateStr).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"});
+type Sale struct {
+	SaleID        int       `json:"saleId"`
+	CustomerName  string    `json:"customerName"`
+	ProductName   string    `json:"productName"`
+	Quantity      int       `json:"quantity"`
+	Price         float64   `json:"price"`
+	PaymentMethod string    `json:"paymentMethod"`
+	CreatedDate   time.Time `json:"createdDate"`
 }
 
-async function loadSales(){
+var db *sql.DB
 
-const res=await fetch("/sales");
-const data=await res.json();
+/* ---------------- MAIN ---------------- */
 
-const body=document.getElementById("salesBody");
-body.innerHTML="";
+func main() {
 
-let count=0;
-let amount=0;
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL not set")
+	}
 
-const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+	var err error
+	db, err = sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-data.forEach(s=>{
+	if err = db.Ping(); err != nil {
+		log.Fatal(err)
+	}
 
-if(!s.createdDate) return;
+	ensureTables()
 
-const saleDate=new Date(s.createdDate).toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+	log.Println("✅ Database connected")
 
-if(saleDate===today){
+	http.HandleFunc("/sales", getSales)
+	http.HandleFunc("/sales/create", createSale)
+	http.HandleFunc("/sales/delete", deleteSale)
+	http.HandleFunc("/health", health)
 
-count++;
-amount+=s.price*s.quantity;
+	// Static folder
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 
-body.innerHTML+=`
-<tr>
-<td>${s.saleId}</td>
-<td>${s.customerName}</td>
-<td>${s.productName}</td>
-<td>${s.quantity}</td>
-<td>₹${s.price}</td>
-<td>${s.paymentMethod}</td>
-<td>${formatIST(s.createdDate)}</td>
-<td><button class="print-btn" onclick="printBill(${s.saleId})">Print</button></td>
-<td><button class="delete-btn" onclick="deleteSale(${s.saleId})">Delete</button></td>
-</tr>`;
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "10000"
+	}
+
+	log.Println("🚀 Server running on port", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-});
+/* ---------------- TABLE CREATION ---------------- */
 
-document.getElementById("count").innerText=count;
-document.getElementById("amount").innerText=amount;
+func ensureTables() {
 
+	query := `
+	CREATE TABLE IF NOT EXISTS sales (
+		sale_id SERIAL PRIMARY KEY,
+		customer_name TEXT NOT NULL,
+		product_name TEXT NOT NULL,
+		quantity INT NOT NULL,
+		price NUMERIC(10,2) NOT NULL,
+		payment_method TEXT DEFAULT 'CASH',
+		created_date TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Asia/Kolkata')
+	);
+	`
+
+	_, err := db.Exec(query)
+	if err != nil {
+		log.Fatal("Failed creating table:", err)
+	}
+
+	log.Println("✅ sales table ready")
 }
 
-function printBill(id){
-window.print();
+/* ---------------- GET SALES ---------------- */
+
+func getSales(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT sale_id,
+		       customer_name,
+		       product_name,
+		       quantity,
+		       price,
+		       payment_method,
+		       created_date
+		FROM sales
+		ORDER BY created_date DESC
+	`)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+
+	var sales []Sale
+
+	for rows.Next() {
+		var s Sale
+		err := rows.Scan(
+			&s.SaleID,
+			&s.CustomerName,
+			&s.ProductName,
+			&s.Quantity,
+			&s.Price,
+			&s.PaymentMethod,
+			&s.CreatedDate,
+		)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		sales = append(sales, s)
+	}
+
+	json.NewEncoder(w).Encode(sales)
 }
 
-async function deleteSale(id){
+/* ---------------- CREATE SALE ---------------- */
 
-if(!confirm("Delete this sale?")) return;
+func createSale(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
 
-await fetch("/sales/delete",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({saleId:id})
-});
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
 
-loadSales();
+	var sale Sale
+	err := json.NewDecoder(r.Body).Decode(&sale)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO sales (
+			customer_name,
+			product_name,
+			quantity,
+			price,
+			payment_method,
+			created_date
+		)
+		VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'Asia/Kolkata')
+	`,
+		sale.CustomerName,
+		sale.ProductName,
+		sale.Quantity,
+		sale.Price,
+		sale.PaymentMethod,
+	)
+
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Sale added",
+	})
 }
 
-document.addEventListener("DOMContentLoaded",loadSales);
+/* ---------------- DELETE SALE ---------------- */
 
-</script>
+func deleteSale(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
 
-</body>
-</html>
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+
+	var req struct {
+		SaleID int `json:"saleId"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM sales WHERE sale_id=$1", req.SaleID)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Sale deleted successfully",
+	})
+}
+
+/* ---------------- HEALTH ---------------- */
+
+func health(w http.ResponseWriter, r *http.Request) {
+	enableCORS(w)
+	w.Write([]byte("OK"))
+}
+
+/* ---------------- CORS ---------------- */
+
+func enableCORS(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+}
