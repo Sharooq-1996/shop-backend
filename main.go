@@ -1,7 +1,7 @@
 package main
 
 import (
-    "database/sql"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -15,7 +15,7 @@ type Sale struct {
 	SaleID        int       `json:"saleId"`
 	CustomerName  string    `json:"customerName"`
 	ProductName   string    `json:"productName"`
-	CellType      string    `json:"cellType"`
+	CellName      string    `json:"cellName"`
 	Warranty      string    `json:"warranty"`
 	Quantity      int       `json:"quantity"`
 	Price         float64   `json:"price"`
@@ -42,7 +42,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ensureTable()
+	ensureTables()
 
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
@@ -59,32 +59,43 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-func ensureTable() {
+func ensureTables() {
+
 	query := `
 	CREATE TABLE IF NOT EXISTS sales (
 		sale_id SERIAL PRIMARY KEY,
 		customer_name TEXT,
 		product_name TEXT,
-		cell_type TEXT,
+		cell_name TEXT,
 		warranty TEXT,
 		quantity INT,
 		price NUMERIC(10,2),
 		payment_method TEXT,
-		created_date TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Asia/Kolkata')
+		created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`
+
 	_, err := db.Exec(query)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS cell_name TEXT;`)
+	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS warranty TEXT;`)
 }
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(`
-		SELECT sale_id, customer_name, product_name,
-		       COALESCE(cell_type,''), COALESCE(warranty,''),
-		       quantity, price, payment_method, created_date
+		SELECT sale_id,
+		       customer_name,
+		       product_name,
+		       cell_name,
+		       warranty,
+		       quantity,
+		       price,
+		       payment_method,
+		       created_date
 		FROM sales
 		ORDER BY created_date DESC
 	`)
@@ -98,9 +109,17 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var s Sale
-		rows.Scan(&s.SaleID, &s.CustomerName, &s.ProductName,
-			&s.CellType, &s.Warranty,
-			&s.Quantity, &s.Price, &s.PaymentMethod, &s.CreatedDate)
+		rows.Scan(
+			&s.SaleID,
+			&s.CustomerName,
+			&s.ProductName,
+			&s.CellName,
+			&s.Warranty,
+			&s.Quantity,
+			&s.Price,
+			&s.PaymentMethod,
+			&s.CreatedDate,
+		)
 		sales = append(sales, s)
 	}
 
@@ -109,22 +128,28 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 func createSale(w http.ResponseWriter, r *http.Request) {
 
-	var s Sale
-	json.NewDecoder(r.Body).Decode(&s)
+	var sale Sale
+	json.NewDecoder(r.Body).Decode(&sale)
 
 	_, err := db.Exec(`
-		INSERT INTO sales
-		(customer_name, product_name, cell_type, warranty,
-		 quantity, price, payment_method)
+		INSERT INTO sales (
+			customer_name,
+			product_name,
+			cell_name,
+			warranty,
+			quantity,
+			price,
+			payment_method
+		)
 		VALUES ($1,$2,$3,$4,$5,$6,$7)
 	`,
-		s.CustomerName,
-		s.ProductName,
-		s.CellType,
-		s.Warranty,
-		s.Quantity,
-		s.Price,
-		s.PaymentMethod,
+		sale.CustomerName,
+		sale.ProductName,
+		sale.CellName,
+		sale.Warranty,
+		sale.Quantity,
+		sale.Price,
+		sale.PaymentMethod,
 	)
 
 	if err != nil {
@@ -132,7 +157,9 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("OK"))
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Sale Added",
+	})
 }
 
 func deleteSale(w http.ResponseWriter, r *http.Request) {
@@ -145,5 +172,7 @@ func deleteSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("Deleted"))
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Deleted",
+	})
 }
