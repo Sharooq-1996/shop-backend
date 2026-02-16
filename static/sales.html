@@ -20,7 +20,7 @@ body{
     display:grid;
     grid-template-columns:repeat(4,1fr);
     gap:15px;
-    margin-bottom:20px;
+    margin-bottom:25px;
 }
 .product-item{
     border:1px solid #ddd;
@@ -33,22 +33,22 @@ body{
     background:#f1f7ff;
 }
 .product-item img{
-    width:90px;
-    height:90px;
+    width:100px;
+    height:100px;
     object-fit:contain;
     margin-bottom:10px;
 }
 .form-grid{
     display:grid;
     grid-template-columns:repeat(2,1fr);
-    gap:10px;
+    gap:12px;
+    margin-bottom:15px;
 }
-input,select{
-    padding:8px;
+.form-grid input,.form-grid select{
+    padding:10px;
 }
 .add-btn{
-    margin-top:10px;
-    padding:8px 20px;
+    padding:10px 25px;
     background:#28a745;
     color:white;
     border:none;
@@ -62,7 +62,7 @@ input,select{
 .box{
     flex:1;
     background:#f1f7ff;
-    padding:15px;
+    padding:20px;
     text-align:center;
     font-weight:bold;
     border-radius:10px;
@@ -73,7 +73,7 @@ table{
 }
 th,td{
     border:1px solid #ddd;
-    padding:6px;
+    padding:8px;
     text-align:center;
 }
 th{
@@ -84,15 +84,18 @@ th{
     background:#007bff;
     color:white;
     border:none;
-    padding:5px 8px;
+    padding:5px 10px;
     cursor:pointer;
 }
 .delete-btn{
     background:#dc3545;
     color:white;
     border:none;
-    padding:5px 8px;
+    padding:5px 10px;
     cursor:pointer;
+}
+.filters{
+    margin:15px 0;
 }
 </style>
 </head>
@@ -105,57 +108,35 @@ th{
 
 <div class="product-grid">
 
-<div class="product-item" onclick="selectProduct('Gents Belt Watch')">
-<img src="gents-belt.png"><p>Gents Belt Watch</p></div>
-
-<div class="product-item" onclick="selectProduct('Gents Chain Watch')">
-<img src="gents-chain.png"><p>Gents Chain Watch</p></div>
-
-<div class="product-item" onclick="selectProduct('Ladies Belt Watch')">
-<img src="ladies-belt.png"><p>Ladies Belt Watch</p></div>
-
-<div class="product-item" onclick="selectProduct('Ladies Chain Watch')">
-<img src="ladies-chain.png"><p>Ladies Chain Watch</p></div>
-
-<div class="product-item" onclick="selectProduct('Wall Clock')">
-<img src="wall-clock.png"><p>Wall Clock</p></div>
-
-<div class="product-item" onclick="selectProduct('Alarm Timepiece')">
-<img src="alarm.png"><p>Alarm Timepiece</p></div>
-
-<div class="product-item" onclick="selectProduct('Strap')">
-<img src="straps.png"><p>Strap</p></div>
-
-<div class="product-item" onclick="selectProduct('Chain')">
-<img src="chain.png"><p>Chain</p></div>
-
-<div class="product-item" onclick="selectProduct('Repair')">
-<img src="repair.png"><p>Repair</p></div>
-
-<div class="product-item" onclick="selectProduct('Watch Cell')">
-<img src="watch-cell.png"><p>Watch Cell</p></div>
-
-<div class="product-item" onclick="selectProduct('Titan Cell')">
-<img src="TitanCells.png"><p>Titan Cell</p></div>
+<div class="product-item" onclick="selectProduct('Gents Belt Watch')"><img src="gents-belt.png"><p>Gents Belt Watch</p></div>
+<div class="product-item" onclick="selectProduct('Gents Chain Watch')"><img src="gents-chain.png"><p>Gents Chain Watch</p></div>
+<div class="product-item" onclick="selectProduct('Ladies Belt Watch')"><img src="ladies-belt.png"><p>Ladies Belt Watch</p></div>
+<div class="product-item" onclick="selectProduct('Ladies Chain Watch')"><img src="ladies-chain.png"><p>Ladies Chain Watch</p></div>
+<div class="product-item" onclick="selectProduct('Wall Clock')"><img src="wall-clock.png"><p>Wall Clock</p></div>
+<div class="product-item" onclick="selectProduct('Alarm Timepiece')"><img src="alarm.png"><p>Alarm Timepiece</p></div>
+<div class="product-item" onclick="selectProduct('Strap')"><img src="straps.png"><p>Strap</p></div>
+<div class="product-item" onclick="selectProduct('Chain')"><img src="chain.png"><p>Chain</p></div>
+<div class="product-item" onclick="selectProduct('Repair')"><img src="repair.png"><p>Repair</p></div>
+<div class="product-item" onclick="selectProduct('Watch Cell')"><img src="watch-cell.png"><p>Watch Cell</p></div>
+<div class="product-item" onclick="selectProduct('Titan Cell')"><img src="TitanCells.png"><p>Titan Cell</p></div>
 
 </div>
 
 <h2>Selected Item</h2>
 
 <div class="form-grid">
-
 <input id="customerName" placeholder="Customer Name">
 <input id="productName" placeholder="Product" readonly>
 
-<select id="cellName">
+<select id="cell">
 <option value="">Select Cell</option>
 </select>
 
 <select id="warranty">
 <option value="">Select Warranty</option>
-<option>3 Months</option>
-<option>6 Months</option>
-<option>1 Year</option>
+<option value="3 Months">3 Months</option>
+<option value="6 Months">6 Months</option>
+<option value="1 Year">1 Year</option>
 </select>
 
 <input id="quantity" type="number" value="1">
@@ -170,11 +151,9 @@ th{
 
 <button class="add-btn" onclick="addSale()">Add Sale</button>
 
-<hr>
-
 <h2>Sales Report</h2>
 
-<div style="margin:10px 0;">
+<div class="filters">
 Search Date:
 <input type="date" id="searchDate">
 <button onclick="filterByDate()">Search</button>
@@ -208,8 +187,7 @@ Search Date:
 
 <script>
 
-/* ---------- IST HELPERS ---------- */
-
+/* IST FORMAT */
 function formatIST(dateStr){
     return new Date(dateStr).toLocaleString("en-IN",{
         timeZone:"Asia/Kolkata",
@@ -227,40 +205,35 @@ function getTodayIST(){
     return new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 }
 
-/* ---------- PRODUCT SELECT ---------- */
-
+/* PRODUCT SELECT */
 function selectProduct(name){
     productName.value=name;
-    cellName.innerHTML='<option value="">Select Cell</option>';
+
+    const cellDropdown=document.getElementById("cell");
+    cellDropdown.innerHTML='<option value="">Select Cell</option>';
 
     if(name==="Watch Cell"){
-        const cells=["G1","626","521","721","920","2016","2025","2030","Others"];
-        cells.forEach(c=>{
-            cellName.innerHTML+=`<option>${c}</option>`;
+        ["G1","626","521","721","920","2016","2025","2030","Others"]
+        .forEach(c=>{
+            cellDropdown.innerHTML+=`<option value="${c}">${c}</option>`;
         });
     }
 
     if(name==="Titan Cell"){
-        const cells=["626","521","721","920"];
-        cells.forEach(c=>{
-            cellName.innerHTML+=`<option>${c}</option>`;
+        ["626","521","721","920"]
+        .forEach(c=>{
+            cellDropdown.innerHTML+=`<option value="${c}">${c}</option>`;
         });
     }
 }
 
-/* ---------- ADD SALE ---------- */
-
+/* ADD SALE */
 async function addSale(){
-
-    if(!productName.value || !price.value){
-        alert("Select product and enter price");
-        return;
-    }
 
     const sale={
         customerName:customerName.value,
         productName:productName.value,
-        cellName:cellName.value,
+        cell:cell.value,
         warranty:warranty.value,
         quantity:+quantity.value,
         price:+price.value,
@@ -273,19 +246,18 @@ async function addSale(){
         body:JSON.stringify(sale)
     });
 
+    customerName.value="";
+    productName.value="";
+    cell.innerHTML='<option value="">Select Cell</option>';
+    warranty.value="";
+    quantity.value=1;
+    price.value="";
+    paymentMethod.value="CASH";
+
     loadSales();
 }
 
-/* ---------- DELETE ---------- */
-
-async function deleteSale(id){
-    if(!confirm("Delete this sale?")) return;
-    await fetch("/sales/delete?id="+id);
-    loadSales();
-}
-
-/* ---------- LOAD SALES ---------- */
-
+/* LOAD SALES */
 async function loadSales(filterDate=null){
 
     const res=await fetch("/sales");
@@ -297,15 +269,16 @@ async function loadSales(filterDate=null){
     let count=0;
     let amount=0;
 
-    const today=getTodayIST();
-    const dateToUse=filterDate || today;
+    const selectedDate=filterDate || getTodayIST();
 
     data.forEach(s=>{
 
-        const saleDate=new Date(s.createdDate)
-        .toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+        if(!s.createdDate) return;
 
-        if(saleDate===dateToUse){
+        const saleDate=new Date(s.createdDate)
+            .toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+
+        if(saleDate===selectedDate){
 
             count++;
             amount+=s.price*s.quantity;
@@ -315,46 +288,63 @@ async function loadSales(filterDate=null){
             <td>${s.saleId}</td>
             <td>${s.customerName}</td>
             <td>${s.productName}</td>
-            <td>${s.cellName||""}</td>
-            <td>${s.warranty||""}</td>
+            <td>${s.cell||"-"}</td>
+            <td>${s.warranty||"-"}</td>
             <td>${s.quantity}</td>
             <td>₹${s.price}</td>
             <td>${s.paymentMethod}</td>
             <td>${formatIST(s.createdDate)}</td>
             <td>
-                <button class="print-btn" onclick='printBill(${JSON.stringify(s)})'>Print</button>
-                <button class="delete-btn" onclick="deleteSale(${s.saleId})">Delete</button>
+            <button class="print-btn" onclick='printBill(${JSON.stringify(s)})'>Print</button>
+            <button class="delete-btn" onclick="deleteSale(${s.saleId})">Delete</button>
             </td>
             </tr>`;
         }
     });
 
+    countSpan.innerText=count;
+    amountSpan.innerText=amount;
+
     document.getElementById("count").innerText=count;
     document.getElementById("amount").innerText=amount;
 }
 
+/* FILTER */
 function filterByDate(){
     const selected=document.getElementById("searchDate").value;
-    if(selected) loadSales(selected);
+    if(selected){
+        loadSales(selected);
+    }
 }
 
-/* ---------- PRINT ---------- */
+/* DELETE */
+async function deleteSale(id){
+    if(!confirm("Delete this sale?")) return;
 
-function printBill(s){
+    await fetch("/sales/delete/"+id,{method:"DELETE"});
+    loadSales();
+}
+
+/* PRINT */
+function printBill(sale){
     const win=window.open("","","width=300,height=600");
     win.document.write(`
-    <h3 style="text-align:center">AYAN WATCH & ELECTRONICS</h3>
-    <hr>
-    Customer: ${s.customerName}<br>
-    Product: ${s.productName}<br>
-    Cell: ${s.cellName||""}<br>
-    Warranty: ${s.warranty||""}<br>
-    Qty: ${s.quantity}<br>
-    Price: ₹${s.price}<br>
-    Payment: ${s.paymentMethod}<br>
-    Date: ${formatIST(s.createdDate)}
-    <hr>
-    <center>Thank You Visit Again</center>
+        <html>
+        <body style="font-family:monospace">
+        <h3 style="text-align:center">AYAN WATCH & ELECTRONICS</h3>
+        <hr>
+        Customer: ${sale.customerName}<br>
+        Product : ${sale.productName}<br>
+        Cell    : ${sale.cell||"-"}<br>
+        Warranty: ${sale.warranty||"-"}<br>
+        Qty     : ${sale.quantity}<br>
+        Price   : ₹${sale.price}<br>
+        Payment : ${sale.paymentMethod}<br>
+        Date    : ${formatIST(sale.createdDate)}
+        <hr>
+        <center>Thank You Visit Again</center>
+        </body>
+        </html>
     `);
     win.document.close();
     win.print();
