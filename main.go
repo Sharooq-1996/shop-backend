@@ -48,6 +48,9 @@ func main() {
 	http.HandleFunc("/sales/create", createSale)
 	http.HandleFunc("/sales/delete", deleteSale)
 
+	// 🔥 NEW: Reset All Sales
+	http.HandleFunc("/sales/reset", resetSales)
+
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	port := os.Getenv("PORT")
@@ -123,6 +126,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		sales = append(sales, s)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(sales)
 }
 
@@ -174,5 +178,19 @@ func deleteSale(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Deleted",
+	})
+}
+
+// 🔥 NEW: RESET ALL DATA AND RESTART ID FROM 1
+func resetSales(w http.ResponseWriter, r *http.Request) {
+
+	_, err := db.Exec("TRUNCATE TABLE sales RESTART IDENTITY;")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "All Sales Reset Successfully",
 	})
 }
