@@ -13,7 +13,7 @@ body{font-family:Arial;background:#eef2f3;padding:20px;}
 .product{border:1px solid #ddd;padding:10px;text-align:center;border-radius:8px;cursor:pointer;}
 .product img{width:100%;height:130px;object-fit:contain;}
 .selected{border:2px solid green;}
-.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px;}
+.form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px;}
 input,select{padding:8px;}
 button{padding:8px 15px;border:none;background:#28a745;color:white;border-radius:5px;cursor:pointer;}
 .summary{display:flex;gap:15px;margin-top:15px;}
@@ -21,10 +21,9 @@ button{padding:8px 15px;border:none;background:#28a745;color:white;border-radius
 table{width:100%;border-collapse:collapse;margin-top:15px;}
 th,td{border:1px solid #ddd;padding:6px;text-align:center;}
 th{background:#1f7ae0;color:white;}
-.print-btn{background:#ff9800;}
-.reset-btn{background:#f44336;}
+.cart-table{margin-bottom:15px;}
 @media print{
-button,.tabs,.form-grid,.product-grid,input,select,#searchDate{display:none;}
+button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 }
 </style>
 </head>
@@ -44,30 +43,22 @@ button,.tabs,.form-grid,.product-grid,input,select,#searchDate{display:none;}
 
 <div class="form-grid">
 <input id="customerName" placeholder="Customer Name">
-
+<input id="description" placeholder="Description">
 <select id="cellSelect">
 <option value="">Select Cell</option>
-<option value="G1">G1</option>
-<option value="626">626</option>
-<option value="521">521</option>
-<option value="721">721</option>
-<option value="920">920</option>
-<option value="2016">2016</option>
-<option value="2025">2025</option>
-<option value="2032">2032</option>
-<option value="Others">Others</option>
+<option>G1</option><option>626</option><option>521</option>
+<option>721</option><option>920</option>
+<option>2016</option><option>2025</option>
+<option>2032</option><option>Others</option>
 </select>
-
 <select id="warrantySelect">
 <option value="">Select Warranty</option>
-<option value="3 Months">3 Months</option>
-<option value="6 Months">6 Months</option>
-<option value="1 Year">1 Year</option>
+<option>3 Months</option>
+<option>6 Months</option>
+<option>1 Year</option>
 </select>
-
 <input id="quantity" type="number" value="1">
 <input id="price" type="number" placeholder="Enter Price">
-
 <select id="paymentMethod">
 <option>Cash</option>
 <option>UPI</option>
@@ -75,14 +66,29 @@ button,.tabs,.form-grid,.product-grid,input,select,#searchDate{display:none;}
 </select>
 </div>
 
-<button onclick="addSale()">Add Sale</button>
-<button class="reset-btn" onclick="resetAll()">Reset All</button>
-<button class="print-btn" onclick="printAll()">Print All Sales</button>
+<button onclick="addToCart()">Add To Cart</button>
+<button onclick="confirmSale()">Confirm Sale</button>
+<button onclick="printAll()">Print Bill</button>
+
+<h3>Cart</h3>
+<table class="cart-table">
+<thead>
+<tr>
+<th>Product</th>
+<th>Description</th>
+<th>Cell</th>
+<th>Warranty</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Remove</th>
+</tr>
+</thead>
+<tbody id="cartBody"></tbody>
+</table>
 
 <hr>
 
 <h3>Sales Report</h3>
-
 <input type="date" id="searchDate">
 <button onclick="filterByDate()">Search</button>
 <button onclick="todaySales()">Today</button>
@@ -98,19 +104,17 @@ button,.tabs,.form-grid,.product-grid,input,select,#searchDate{display:none;}
 <th>ID</th>
 <th>Customer</th>
 <th>Product</th>
+<th>Description</th>
 <th>Cell</th>
 <th>Warranty</th>
 <th>Qty</th>
 <th>Price</th>
 <th>Payment</th>
 <th>Date</th>
-<th>Action</th>
 </tr>
 </thead>
 <tbody id="salesBody"></tbody>
 </table>
-
-<canvas id="chart"></canvas>
 
 </div>
 
@@ -118,21 +122,18 @@ button,.tabs,.form-grid,.product-grid,input,select,#searchDate{display:none;}
 
 let selectedProduct="";
 let selectedCategory="";
-let salesChart=null;
+let cart=[];
 
-/* ✅ FULL PRODUCT LIST WITH NEW ADDITIONS */
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
 {name:"Gents Chain Watch",category:"watch",img:"./gents-chain.png"},
 {name:"Ladies Belt Watch",category:"watch",img:"./ladies-belt.png"},
 {name:"Ladies Chain Watch",category:"watch",img:"./ladies-chain.png"},
 {name:"Wall Clock",category:"watch",img:"./wall-clock.png"},
-{name:"Alarm Timepiece",category:"watch",img:"./alarm-clock.png"},
-
-{name:"Titan Cell",category:"cell",img:"./titan-cell.png"},
+{name:"Alarm Timepiece",category:"watch",img:"./alarm.png"},
+{name:"Titan Cell",category:"cell",img:"./TitanCells.png"},
 {name:"Watch Cell",category:"cell",img:"./watch-cell.png"},
-
-{name:"Strap",category:"accessory",img:"./strap.png"},
+{name:"Strap",category:"accessory",img:"./straps.png"},
 {name:"Chain",category:"accessory",img:"./chain.png"},
 {name:"Repair",category:"accessory",img:"./repair.png"}
 ];
@@ -151,123 +152,82 @@ grid.innerHTML+=`
 });
 }
 
+function filterCategory(cat){loadProducts(cat);}
+filterCategory("watch");
+
 function selectProduct(name,el){
 selectedProduct=name;
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 el.classList.add("selected");
-
-if(selectedCategory==="cell"){
-cellSelect.disabled=false;
-}else{
-cellSelect.value="";
-cellSelect.disabled=true;
-}
 }
 
-filterCategory("watch");
-function filterCategory(cat){loadProducts(cat);}
+function addToCart(){
 
-function addSale(){
+if(!selectedProduct){alert("Select product");return;}
 
-if(!selectedProduct){
-alert("Please select product");
-return;
-}
-
-const sale={
-customerName:customerName.value,
-productName:selectedProduct,
-cellName:selectedCategory==="cell"?cellSelect.value:"",
+cart.push({
+product:selectedProduct,
+description:description.value,
+cell:cellSelect.value,
 warranty:warrantySelect.value,
-quantity:parseInt(quantity.value),
-price:parseFloat(price.value),
-paymentMethod:paymentMethod.value
-};
+qty:parseInt(quantity.value),
+price:parseFloat(price.value)
+});
 
+renderCart();
+}
+
+function renderCart(){
+const body=document.getElementById("cartBody");
+body.innerHTML="";
+cart.forEach((item,index)=>{
+body.innerHTML+=`
+<tr>
+<td>${item.product}</td>
+<td>${item.description}</td>
+<td>${item.cell||"-"}</td>
+<td>${item.warranty||"-"}</td>
+<td>${item.qty}</td>
+<td>₹${item.price}</td>
+<td><button onclick="removeCart(${index})">X</button></td>
+</tr>`;
+});
+}
+
+function removeCart(i){
+cart.splice(i,1);
+renderCart();
+}
+
+function confirmSale(){
+
+if(cart.length===0){alert("Cart empty");return;}
+
+cart.forEach(item=>{
 fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify(sale)
-}).then(()=>loadSales());
+body:JSON.stringify({
+customerName:customerName.value,
+productName:item.product,
+cellName:item.cell,
+warranty:item.warranty,
+quantity:item.qty,
+price:item.price,
+paymentMethod:paymentMethod.value
+})
+});
+});
+
+cart=[];
+renderCart();
+loadSales();
 }
 
 function loadSales(){
 fetch("/sales")
 .then(r=>r.json())
 .then(data=>{
-
-let totalAmount=0;
-let totalCount=0;
-const tbody=document.getElementById("salesBody");
-tbody.innerHTML="";
-const daily={};
-
-data.forEach(s=>{
-totalCount+=s.quantity;
-totalAmount+=s.quantity*s.price;
-
-tbody.innerHTML+=`
-<tr>
-<td>${s.saleId}</td>
-<td>${s.customerName}</td>
-<td>${s.productName}</td>
-<td>${s.cellName||"-"}</td>
-<td>${s.warranty||"-"}</td>
-<td>${s.quantity}</td>
-<td>₹${s.price}</td>
-<td>${s.paymentMethod}</td>
-<td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
-<td>
-<button onclick="printSingle()" class="print-btn">Print</button>
-<button onclick="deleteSale(${s.saleId})">Delete</button>
-</td>
-</tr>`;
-
-const d=new Date(s.createdDate)
-.toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
-daily[d]=(daily[d]||0)+(s.quantity*s.price);
-});
-
-count.innerText=totalCount;
-amount.innerText=totalAmount.toFixed(2);
-
-if(salesChart) salesChart.destroy();
-
-salesChart=new Chart(document.getElementById("chart"),{
-type:"bar",
-data:{labels:Object.keys(daily),
-datasets:[{label:"Daily Sales ₹",data:Object.values(daily)}]}
-});
-});
-}
-
-function printSingle(){window.print();}
-function printAll(){window.print();}
-function deleteSale(id){
-fetch("/sales/delete?id="+id).then(()=>loadSales());
-}
-function resetAll(){
-if(confirm("Delete all data?")){
-fetch("/sales/reset",{method:"POST"}).then(()=>loadSales());
-}
-}
-function filterByDate(){
-const date=document.getElementById("searchDate").value;
-fetch("/sales")
-.then(r=>r.json())
-.then(data=>{
-const filtered=data.filter(s=>
-new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date);
-renderFiltered(filtered);
-});
-}
-function todaySales(){
-const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
-searchDate.value=today;
-filterByDate();
-}
-function renderFiltered(data){
 let totalAmount=0,totalCount=0;
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
@@ -279,21 +239,21 @@ tbody.innerHTML+=`
 <td>${s.saleId}</td>
 <td>${s.customerName}</td>
 <td>${s.productName}</td>
+<td>-</td>
 <td>${s.cellName||"-"}</td>
 <td>${s.warranty||"-"}</td>
 <td>${s.quantity}</td>
 <td>₹${s.price}</td>
 <td>${s.paymentMethod}</td>
 <td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
-<td>
-<button onclick="printSingle()" class="print-btn">Print</button>
-<button onclick="deleteSale(${s.saleId})">Delete</button>
-</td>
 </tr>`;
 });
 count.innerText=totalCount;
 amount.innerText=totalAmount.toFixed(2);
+});
 }
+
+function printAll(){window.print();}
 
 loadSales();
 
