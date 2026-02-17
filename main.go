@@ -15,12 +15,12 @@ type Sale struct {
 	SaleID        int       `json:"saleId"`
 	CustomerName  string    `json:"customerName"`
 	ProductName   string    `json:"productName"`
-	Cell          string    `json:"cell"`
+	CellName      string    `json:"cellName"`
 	Warranty      string    `json:"warranty"`
 	Quantity      int       `json:"quantity"`
 	Price         float64   `json:"price"`
 	PaymentMethod string    `json:"paymentMethod"`
-	CreatedDate   string    `json:"createdDate"`
+	CreatedDate   time.Time `json:"createdDate"`
 }
 
 var db *sql.DB
@@ -38,16 +38,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = db.Ping()
-	if err != nil {
+	if err = db.Ping(); err != nil {
 		log.Fatal(err)
 	}
 
-	createTable()
+	ensureTables()
 
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
-	http.HandleFunc("/sales/delete/", deleteSale)
+	http.HandleFunc("/sales/delete", deleteSale)
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 
@@ -56,18 +55,18 @@ func main() {
 		port = "10000"
 	}
 
-	log.Println("Server running on", port)
+	log.Println("Server running on port", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
-func createTable() {
+func ensureTables() {
 
 	query := `
 	CREATE TABLE IF NOT EXISTS sales (
 		sale_id SERIAL PRIMARY KEY,
 		customer_name TEXT,
 		product_name TEXT,
-		cell TEXT,
+		cell_name TEXT,
 		warranty TEXT,
 		quantity INT,
 		price NUMERIC(10,2),
@@ -75,18 +74,28 @@ func createTable() {
 		created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`
+
 	_, err := db.Exec(query)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS cell_name TEXT;`)
+	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS warranty TEXT;`)
 }
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(`
-		SELECT sale_id, customer_name, product_name, cell,
-		       warranty, quantity, price,
-		       payment_method, created_date
+		SELECT sale_id,
+		       customer_name,
+		       product_name,
+		       cell_name,
+		       warranty,
+		       quantity,
+		       price,
+		       payment_method,
+		       created_date
 		FROM sales
 		ORDER BY created_date DESC
 	`)
@@ -100,25 +109,17 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var s Sale
-		var created time.Time
-
-		err := rows.Scan(
+		rows.Scan(
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
-			&s.Cell,
+			&s.CellName,
 			&s.Warranty,
 			&s.Quantity,
 			&s.Price,
 			&s.PaymentMethod,
-			&created,
+			&s.CreatedDate,
 		)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		s.CreatedDate = created.Format(time.RFC3339)
 		sales = append(sales, s)
 	}
 
@@ -130,35 +131,25 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	var sale Sale
 	json.NewDecoder(r.Body).Decode(&sale)
 
-	query := `
-	INSERT INTO sales (
-		customer_name,
-		product_name,
-		cell,
-		warranty,
-		quantity,
-		price,
-		payment_method,
-		created_date
-	)
-	VALUES ($1,$2,$3,$4,$5,$6,$7,
-		CASE 
-			WHEN $8 = '' THEN CURRENT_TIMESTAMP
-			ELSE $8::timestamp
-		END
-	)
-	`
-
-	_, err := db.Exec(
-		query,
+	_, err := db.Exec(`
+		INSERT INTO sales (
+			customer_name,
+			product_name,
+			cell_name,
+			warranty,
+			quantity,
+			price,
+			payment_method
+		)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)
+	`,
 		sale.CustomerName,
 		sale.ProductName,
-		sale.Cell,
+		sale.CellName,
 		sale.Warranty,
 		sale.Quantity,
 		sale.Price,
 		sale.PaymentMethod,
-		sale.CreatedDate,
 	)
 
 	if err != nil {
@@ -166,12 +157,14 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(`{"status":"ok"}`))
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Sale Added",
+	})
 }
 
 func deleteSale(w http.ResponseWriter, r *http.Request) {
 
-	id := r.URL.Path[len("/sales/delete/"):]
+	id := r.URL.Query().Get("id")
 
 	_, err := db.Exec("DELETE FROM sales WHERE sale_id=$1", id)
 	if err != nil {
@@ -179,5 +172,7 @@ func deleteSale(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(`{"deleted":"ok"}`))
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Deleted",
+	})
 }
