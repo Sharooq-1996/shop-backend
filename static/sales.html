@@ -23,6 +23,9 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center;}
 th{background:#1f7ae0;color:white;}
 .print-btn{background:#ff9800;}
 .reset-btn{background:#f44336;}
+@media print{
+button,.tabs,.form-grid,.product-grid,input,select,#searchDate{display:none;}
+}
 </style>
 </head>
 <body>
@@ -117,16 +120,21 @@ let selectedProduct="";
 let selectedCategory="";
 let salesChart=null;
 
+/* ✅ FULL PRODUCT LIST WITH NEW ADDITIONS */
 const products=[
-{name:"Gents Belt Watch",category:"watch",img:"gents-belt.png"},
-{name:"Gents Chain Watch",category:"watch",img:"gents-chain.png"},
-{name:"Ladies Belt Watch",category:"watch",img:"ladies-belt.png"},
-{name:"Ladies Chain Watch",category:"watch",img:"ladies-chain.png"},
-{name:"Titan Cell",category:"cell",img:"titan-cell.png"},
-{name:"Watch Cell",category:"cell",img:"watch-cell.png"},
-{name:"Strap",category:"accessory",img:"strap.png"},
-{name:"Chain",category:"accessory",img:"chain.png"},
-{name:"Repair",category:"accessory",img:"repair.png"}
+{name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
+{name:"Gents Chain Watch",category:"watch",img:"./gents-chain.png"},
+{name:"Ladies Belt Watch",category:"watch",img:"./ladies-belt.png"},
+{name:"Ladies Chain Watch",category:"watch",img:"./ladies-chain.png"},
+{name:"Wall Clock",category:"watch",img:"./wall-clock.png"},
+{name:"Alarm Timepiece",category:"watch",img:"./alarm-clock.png"},
+
+{name:"Titan Cell",category:"cell",img:"./titan-cell.png"},
+{name:"Watch Cell",category:"cell",img:"./watch-cell.png"},
+
+{name:"Strap",category:"accessory",img:"./strap.png"},
+{name:"Chain",category:"accessory",img:"./chain.png"},
+{name:"Repair",category:"accessory",img:"./repair.png"}
 ];
 
 function loadProducts(category){
@@ -148,7 +156,6 @@ selectedProduct=name;
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 el.classList.add("selected");
 
-/* Cell dropdown only for cell category */
 if(selectedCategory==="cell"){
 cellSelect.disabled=false;
 }else{
@@ -211,14 +218,13 @@ tbody.innerHTML+=`
 <td>${s.paymentMethod}</td>
 <td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
 <td>
-<button onclick="printSingle(${s.saleId})" class="print-btn">Print</button>
+<button onclick="printSingle()" class="print-btn">Print</button>
 <button onclick="deleteSale(${s.saleId})">Delete</button>
 </td>
 </tr>`;
 
 const d=new Date(s.createdDate)
 .toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
-
 daily[d]=(daily[d]||0)+(s.quantity*s.price);
 });
 
@@ -235,26 +241,16 @@ datasets:[{label:"Daily Sales ₹",data:Object.values(daily)}]}
 });
 }
 
-function printSingle(id){
-window.print();
-}
-
-function printAll(){
-window.print();
-}
-
+function printSingle(){window.print();}
+function printAll(){window.print();}
 function deleteSale(id){
-fetch("/sales/delete?id="+id)
-.then(()=>loadSales());
+fetch("/sales/delete?id="+id).then(()=>loadSales());
 }
-
 function resetAll(){
 if(confirm("Delete all data?")){
-fetch("/sales/reset",{method:"POST"})
-.then(()=>loadSales());
+fetch("/sales/reset",{method:"POST"}).then(()=>loadSales());
 }
 }
-
 function filterByDate(){
 const date=document.getElementById("searchDate").value;
 fetch("/sales")
@@ -266,14 +262,11 @@ new Date(s.createdDate)
 renderFiltered(filtered);
 });
 }
-
 function todaySales(){
-const today=new Date()
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 searchDate.value=today;
 filterByDate();
 }
-
 function renderFiltered(data){
 let totalAmount=0,totalCount=0;
 const tbody=document.getElementById("salesBody");
@@ -293,7 +286,7 @@ tbody.innerHTML+=`
 <td>${s.paymentMethod}</td>
 <td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
 <td>
-<button onclick="printSingle(${s.saleId})" class="print-btn">Print</button>
+<button onclick="printSingle()" class="print-btn">Print</button>
 <button onclick="deleteSale(${s.saleId})">Delete</button>
 </td>
 </tr>`;
