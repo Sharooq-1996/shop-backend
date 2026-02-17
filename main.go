@@ -47,8 +47,6 @@ func main() {
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
 	http.HandleFunc("/sales/delete", deleteSale)
-
-	// 🔥 NEW: Reset All Sales
 	http.HandleFunc("/sales/reset", resetSales)
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
@@ -82,23 +80,14 @@ func ensureTables() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS cell_name TEXT;`)
-	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS warranty TEXT;`)
 }
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(`
-		SELECT sale_id,
-		       customer_name,
-		       product_name,
-		       cell_name,
-		       warranty,
-		       quantity,
-		       price,
-		       payment_method,
-		       created_date
+		SELECT sale_id, customer_name, product_name,
+		       cell_name, warranty, quantity,
+		       price, payment_method, created_date
 		FROM sales
 		ORDER BY created_date DESC
 	`)
@@ -137,13 +126,8 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec(`
 		INSERT INTO sales (
-			customer_name,
-			product_name,
-			cell_name,
-			warranty,
-			quantity,
-			price,
-			payment_method
+			customer_name, product_name, cell_name,
+			warranty, quantity, price, payment_method
 		)
 		VALUES ($1,$2,$3,$4,$5,$6,$7)
 	`,
@@ -181,7 +165,6 @@ func deleteSale(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// 🔥 NEW: RESET ALL DATA AND RESTART ID FROM 1
 func resetSales(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec("TRUNCATE TABLE sales RESTART IDENTITY;")
@@ -191,6 +174,6 @@ func resetSales(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "All Sales Reset Successfully",
+		"message": "All Sales Reset",
 	})
 }
