@@ -9,9 +9,9 @@ body{font-family:Arial;background:#eef2f3;padding:20px;}
 .container{background:white;padding:20px;max-width:1300px;margin:auto;border-radius:10px;}
 .tabs{display:flex;gap:10px;margin-bottom:15px;}
 .tabs button{padding:8px 15px;border:none;background:#1f7ae0;color:white;border-radius:5px;cursor:pointer;}
-.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:15px;margin-bottom:20px;}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:15px;margin-bottom:20px;}
 .product{border:1px solid #ddd;padding:10px;text-align:center;border-radius:8px;cursor:pointer;}
-.product img{width:100%;height:120px;object-fit:contain;}
+.product img{width:100%;height:130px;object-fit:contain;}
 .selected{border:2px solid green;}
 .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px;}
 input,select{padding:8px;}
@@ -21,6 +21,8 @@ button{padding:8px 15px;border:none;background:#28a745;color:white;border-radius
 table{width:100%;border-collapse:collapse;margin-top:15px;}
 th,td{border:1px solid #ddd;padding:6px;text-align:center;}
 th{background:#1f7ae0;color:white;}
+.print-btn{background:#ff9800;}
+.reset-btn{background:#f44336;}
 </style>
 </head>
 <body>
@@ -39,12 +41,18 @@ th{background:#1f7ae0;color:white;}
 
 <div class="form-grid">
 <input id="customerName" placeholder="Customer Name">
+
 <select id="cellSelect">
 <option value="">Select Cell</option>
 <option value="G1">G1</option>
 <option value="626">626</option>
 <option value="521">521</option>
+<option value="721">721</option>
+<option value="920">920</option>
+<option value="2016">2016</option>
+<option value="2025">2025</option>
 <option value="2032">2032</option>
+<option value="Others">Others</option>
 </select>
 
 <select id="warrantySelect">
@@ -56,6 +64,7 @@ th{background:#1f7ae0;color:white;}
 
 <input id="quantity" type="number" value="1">
 <input id="price" type="number" placeholder="Enter Price">
+
 <select id="paymentMethod">
 <option>Cash</option>
 <option>UPI</option>
@@ -64,7 +73,8 @@ th{background:#1f7ae0;color:white;}
 </div>
 
 <button onclick="addSale()">Add Sale</button>
-<button onclick="resetAll()">Reset All</button>
+<button class="reset-btn" onclick="resetAll()">Reset All</button>
+<button class="print-btn" onclick="printAll()">Print All Sales</button>
 
 <hr>
 
@@ -82,10 +92,16 @@ th{background:#1f7ae0;color:white;}
 <table>
 <thead>
 <tr>
-<th>ID</th><th>Customer</th><th>Product</th>
-<th>Cell</th><th>Warranty</th>
-<th>Qty</th><th>Price</th><th>Payment</th>
-<th>Date</th><th>Action</th>
+<th>ID</th>
+<th>Customer</th>
+<th>Product</th>
+<th>Cell</th>
+<th>Warranty</th>
+<th>Qty</th>
+<th>Price</th>
+<th>Payment</th>
+<th>Date</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody id="salesBody"></tbody>
@@ -98,16 +114,23 @@ th{background:#1f7ae0;color:white;}
 <script>
 
 let selectedProduct="";
+let selectedCategory="";
 let salesChart=null;
 
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"gents-belt.png"},
+{name:"Gents Chain Watch",category:"watch",img:"gents-chain.png"},
+{name:"Ladies Belt Watch",category:"watch",img:"ladies-belt.png"},
 {name:"Ladies Chain Watch",category:"watch",img:"ladies-chain.png"},
-{name:"Watch Cell",category:"cell",img:"titan-cell.png"},
-{name:"Strap",category:"accessory",img:"strap.png"}
+{name:"Titan Cell",category:"cell",img:"titan-cell.png"},
+{name:"Watch Cell",category:"cell",img:"watch-cell.png"},
+{name:"Strap",category:"accessory",img:"strap.png"},
+{name:"Chain",category:"accessory",img:"chain.png"},
+{name:"Repair",category:"accessory",img:"repair.png"}
 ];
 
 function loadProducts(category){
+selectedCategory=category;
 const grid=document.getElementById("productGrid");
 grid.innerHTML="";
 products.filter(p=>p.category===category)
@@ -124,17 +147,30 @@ function selectProduct(name,el){
 selectedProduct=name;
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 el.classList.add("selected");
+
+/* Cell dropdown only for cell category */
+if(selectedCategory==="cell"){
+cellSelect.disabled=false;
+}else{
+cellSelect.value="";
+cellSelect.disabled=true;
+}
 }
 
+filterCategory("watch");
 function filterCategory(cat){loadProducts(cat);}
-loadProducts("watch");
 
 function addSale(){
+
+if(!selectedProduct){
+alert("Please select product");
+return;
+}
 
 const sale={
 customerName:customerName.value,
 productName:selectedProduct,
-cellName:cellSelect.value,
+cellName:selectedCategory==="cell"?cellSelect.value:"",
 warranty:warrantySelect.value,
 quantity:parseInt(quantity.value),
 price:parseFloat(price.value),
@@ -174,7 +210,10 @@ tbody.innerHTML+=`
 <td>₹${s.price}</td>
 <td>${s.paymentMethod}</td>
 <td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
-<td><button onclick="deleteSale(${s.saleId})">Delete</button></td>
+<td>
+<button onclick="printSingle(${s.saleId})" class="print-btn">Print</button>
+<button onclick="deleteSale(${s.saleId})">Delete</button>
+</td>
 </tr>`;
 
 const d=new Date(s.createdDate)
@@ -193,8 +232,15 @@ type:"bar",
 data:{labels:Object.keys(daily),
 datasets:[{label:"Daily Sales ₹",data:Object.values(daily)}]}
 });
-
 });
+}
+
+function printSingle(id){
+window.print();
+}
+
+function printAll(){
+window.print();
 }
 
 function deleteSale(id){
@@ -246,7 +292,10 @@ tbody.innerHTML+=`
 <td>₹${s.price}</td>
 <td>${s.paymentMethod}</td>
 <td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
-<td><button onclick="deleteSale(${s.saleId})">Delete</button></td>
+<td>
+<button onclick="printSingle(${s.saleId})" class="print-btn">Print</button>
+<button onclick="deleteSale(${s.saleId})">Delete</button>
+</td>
 </tr>`;
 });
 count.innerText=totalCount;
