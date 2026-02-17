@@ -2,154 +2,42 @@
 <html>
 <head>
 <title>Sales – Ayan Watch and Electronics</title>
-
 <style>
-body{
-    font-family:Arial;
-    background:#eef2f3;
-    padding:20px;
-}
-.container{
-    max-width:1300px;
-    margin:auto;
-    background:white;
-    padding:20px;
-    border-radius:10px;
-}
-.product-grid{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:15px;
-    margin-bottom:20px;
-}
-.product-card{
-    border:1px solid #ddd;
-    padding:15px;
-    text-align:center;
-    border-radius:10px;
-    cursor:pointer;
-}
-.product-card:hover{
-    background:#f1f7ff;
-}
-.product-card img{
-    width:90px;
-    height:90px;
-    object-fit:contain;
-    margin-bottom:10px;
-}
-.form-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:12px;
-}
-.form-grid input,
-.form-grid select{
-    padding:10px;
-}
-.add-btn{
-    background:#28a745;
-    color:white;
-    border:none;
-    padding:12px;
-    cursor:pointer;
-}
-.summary{
-    display:flex;
-    gap:20px;
-    margin:20px 0;
-}
-.box{
-    flex:1;
-    background:#e9edf3;
-    padding:20px;
-    text-align:center;
-    border-radius:10px;
-    font-weight:bold;
-}
-table{
-    width:100%;
-    border-collapse:collapse;
-}
-th,td{
-    border:1px solid #ddd;
-    padding:8px;
-    text-align:center;
-}
-th{
-    background:#1f7ae0;
-    color:white;
-}
-.print-btn{
-    background:#007bff;
-    color:white;
-    border:none;
-    padding:5px 10px;
-    cursor:pointer;
-}
-.delete-btn{
-    background:#dc3545;
-    color:white;
-    border:none;
-    padding:5px 10px;
-    cursor:pointer;
-}
+body{font-family:Arial;background:#eef2f3;padding:20px;}
+.container{max-width:1200px;margin:auto;background:white;padding:20px;border-radius:10px;}
+.product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:20px;}
+.product-item{border:1px solid #ddd;padding:15px;text-align:center;border-radius:10px;cursor:pointer;}
+.product-item img{width:100px;height:100px;object-fit:contain;}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+input,select{padding:8px;}
+.add-btn{padding:10px;background:#28a745;color:white;border:none;cursor:pointer;}
+table{width:100%;border-collapse:collapse;margin-top:20px;}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;}
+th{background:#1f7ae0;color:white;}
+.print-btn{background:#007bff;color:white;border:none;padding:5px 10px;}
+.delete-btn{background:#dc3545;color:white;border:none;padding:5px 10px;}
+.summary{display:flex;gap:20px;margin:20px 0;}
+.box{flex:1;background:#f1f7ff;padding:20px;text-align:center;font-weight:bold;border-radius:10px;}
 </style>
 </head>
-
 <body>
+
 <div class="container">
 
 <h2>Select Product</h2>
-
 <div class="product-grid">
-
-<div class="product-card" onclick="selectProduct('Gents Belt Watch')">
-<img src="gents-belt.png"><p>Gents Belt Watch</p></div>
-
-<div class="product-card" onclick="selectProduct('Gents Chain Watch')">
-<img src="gents-chain.png"><p>Gents Chain Watch</p></div>
-
-<div class="product-card" onclick="selectProduct('Ladies Belt Watch')">
-<img src="ladies-belt.png"><p>Ladies Belt Watch</p></div>
-
-<div class="product-card" onclick="selectProduct('Ladies Chain Watch')">
-<img src="ladies-chain.png"><p>Ladies Chain Watch</p></div>
-
-<div class="product-card" onclick="selectProduct('Wall Clock')">
-<img src="wall-clock.png"><p>Wall Clock</p></div>
-
-<div class="product-card" onclick="selectProduct('Alarm Timepiece')">
-<img src="alarm.png"><p>Alarm Timepiece</p></div>
-
-<div class="product-card" onclick="selectProduct('Strap')">
-<img src="straps.png"><p>Strap</p></div>
-
-<div class="product-card" onclick="selectProduct('Chain')">
-<img src="chain.png"><p>Chain</p></div>
-
-<div class="product-card" onclick="selectProduct('Repair')">
-<img src="repair.png"><p>Repair</p></div>
-
-<div class="product-card" onclick="selectProduct('Watch Cell')">
-<img src="watch-cell.png"><p>Watch Cell</p></div>
-
-<div class="product-card" onclick="selectProduct('Titan Cell')">
-<img src="TitanCells.png"><p>Titan Cell</p></div>
-
+<div class="product-item" onclick="selectProduct('Watch Cell')"><img src="watch-cell.png"><p>Watch Cell</p></div>
+<div class="product-item" onclick="selectProduct('Titan Cell')"><img src="TitanCells.png"><p>Titan Cell</p></div>
+<div class="product-item" onclick="selectProduct('Wall Clock')"><img src="wall-clock.png"><p>Wall Clock</p></div>
 </div>
 
 <h2>Selected Item</h2>
 
 <div class="form-grid">
-
 <input id="customerName" placeholder="Customer Name">
 <input id="productName" placeholder="Product" readonly>
 
-<select id="cellSelect">
-<option value="">Select Cell</option>
-</select>
-
+<select id="cellSelect"><option value="">Select Cell</option></select>
 <select id="warrantySelect">
 <option value="">Select Warranty</option>
 <option>3 Months</option>
@@ -165,8 +53,9 @@ th{
 <option value="UPI">UPI</option>
 </select>
 
-<button class="add-btn" onclick="addSale()">Add Sale</button>
+<input type="datetime-local" id="saleDate">
 
+<button class="add-btn" onclick="addSale()">Add Sale</button>
 </div>
 
 <h2>Sales Report</h2>
@@ -184,16 +73,8 @@ Search Date:
 <table>
 <thead>
 <tr>
-<th>ID</th>
-<th>Customer</th>
-<th>Product</th>
-<th>Cell</th>
-<th>Warranty</th>
-<th>Qty</th>
-<th>Price</th>
-<th>Payment</th>
-<th>Date & Time</th>
-<th>Action</th>
+<th>ID</th><th>Customer</th><th>Product</th><th>Cell</th><th>Warranty</th>
+<th>Qty</th><th>Price</th><th>Payment</th><th>Date & Time</th><th>Action</th>
 </tr>
 </thead>
 <tbody id="salesBody"></tbody>
@@ -204,28 +85,25 @@ Search Date:
 <script>
 
 function selectProduct(name){
-    productName.value=name;
+productName.value=name;
+cellSelect.innerHTML='<option value="">Select Cell</option>';
 
-    const cellDropdown=document.getElementById("cellSelect");
-    cellDropdown.innerHTML='<option value="">Select Cell</option>';
+if(name==="Watch Cell"){
+["G1","626","521","721","920","2016","2025","2030","Others"]
+.forEach(c=>cellSelect.innerHTML+=`<option>${c}</option>`);
+}
 
-    if(name==="Watch Cell"){
-        ["G1","626","521","721","920","2016","2025","2030","Others"]
-        .forEach(c=>cellDropdown.innerHTML+=`<option>${c}</option>`);
-    }
-
-    if(name==="Titan Cell"){
-        ["626","521","721","920"]
-        .forEach(c=>cellDropdown.innerHTML+=`<option>${c}</option>`);
-    }
+if(name==="Titan Cell"){
+["626","521","721","920"]
+.forEach(c=>cellSelect.innerHTML+=`<option>${c}</option>`);
+}
 }
 
 function formatIST(dateStr){
-    return new Date(dateStr).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"});
+return new Date(dateStr).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"});
 }
 
 async function addSale(){
-
 const sale={
 customerName:customerName.value,
 productName:productName.value,
@@ -233,41 +111,30 @@ cell:cellSelect.value,
 warranty:warrantySelect.value,
 quantity:+quantity.value,
 price:+price.value,
-paymentMethod:paymentMethod.value
+paymentMethod:paymentMethod.value,
+createdDate:saleDate.value
 };
 
-await fetch("/sales/create",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify(sale)
-});
-
+await fetch("/sales/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(sale)});
 loadSales();
 }
 
 async function loadSales(date=null){
-
 const res=await fetch("/sales");
 const data=await res.json();
 
-const body=document.getElementById("salesBody");
-body.innerHTML="";
+salesBody.innerHTML="";
+let count=0,amount=0;
 
-let count=0;
-let amount=0;
-
-const filterDate=date || new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+const filter=date||new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 
 data.forEach(s=>{
-const saleDate=new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
-
-if(saleDate===filterDate){
-
+const d=new Date(s.createdDate).toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+if(d===filter){
 count++;
 amount+=s.price*s.quantity;
 
-body.innerHTML+=`
+salesBody.innerHTML+=`
 <tr>
 <td>${s.saleId}</td>
 <td>${s.customerName||""}</td>
@@ -286,42 +153,35 @@ body.innerHTML+=`
 }
 });
 
-countEl.innerText=count;
-amountEl.innerText=amount;
-
+count.innerText=count;
+amount.innerText=amount;
 }
 
-function searchByDate(){
-loadSales(searchDate.value);
-}
+function searchByDate(){loadSales(searchDate.value);}
 
 async function deleteSale(id){
 await fetch("/sales/delete/"+id,{method:"DELETE"});
 loadSales();
 }
 
-function printBill(sale){
-const win=window.open("","","width=300,height=600");
-win.document.write(`
-<h3 style="text-align:center">AYAN WATCH & ELECTRONICS</h3>
-<hr>
-Customer: ${sale.customerName}<br>
-Product: ${sale.productName}<br>
-Cell: ${sale.cell||"-"}<br>
-Warranty: ${sale.warranty||"-"}<br>
-Qty: ${sale.quantity}<br>
-Price: ₹${sale.price}<br>
-Payment: ${sale.paymentMethod}<br>
-Date: ${formatIST(sale.createdDate)}
-<hr>
-<center>Thank You Visit Again</center>
-`);
-win.document.close();
-win.print();
+function printBill(s){
+const w=window.open("");
+w.document.write(`<h3>AYAN WATCH & ELECTRONICS</h3>
+Customer: ${s.customerName}<br>
+Product: ${s.productName}<br>
+Cell: ${s.cell||"-"}<br>
+Warranty: ${s.warranty||"-"}<br>
+Qty: ${s.quantity}<br>
+Price: ₹${s.price}<br>
+Payment: ${s.paymentMethod}<br>
+Date: ${formatIST(s.createdDate)}<br>
+<hr>Thank You`);
+w.print();
 }
 
 document.addEventListener("DOMContentLoaded",loadSales);
 
 </script>
+
 </body>
 </html>
