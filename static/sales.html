@@ -32,7 +32,6 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <body>
 
 <div class="container">
-
 <h2>Ayan Watch and Electronics - POS</h2>
 
 <div class="tabs">
@@ -46,19 +45,15 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <div class="form-grid">
 <input id="customerName" placeholder="Customer Name">
 <input id="description" placeholder="Description">
-
 <select id="cellSelect" class="hidden"></select>
-
 <select id="warrantySelect">
 <option value="">Select Warranty</option>
 <option>3 Months</option>
 <option>6 Months</option>
 <option>1 Year</option>
 </select>
-
 <input id="quantity" type="number" value="1">
 <input id="price" type="number" placeholder="Enter Price">
-
 <select id="paymentMethod">
 <option>Cash</option>
 <option>UPI</option>
@@ -90,7 +85,6 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <hr>
 
 <h3>Sales Report</h3>
-
 <input type="date" id="searchDate">
 <button onclick="filterByDate()">Search</button>
 <button onclick="todaySales()">Today</button>
@@ -119,16 +113,12 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <tbody id="salesBody"></tbody>
 </table>
 
-<canvas id="chart"></canvas>
-
 </div>
 
 <script>
 
 let selectedProduct="";
-let selectedCategory="";
 let cart=[];
-let salesChart=null;
 
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
@@ -144,12 +134,10 @@ const products=[
 {name:"Repair",category:"accessory",img:"./repair.png"}
 ];
 
-function loadProducts(category){
-selectedCategory=category;
+function filterCategory(cat){
 const grid=document.getElementById("productGrid");
 grid.innerHTML="";
-products.filter(p=>p.category===category)
-.forEach(p=>{
+products.filter(p=>p.category===cat).forEach(p=>{
 grid.innerHTML+=`
 <div class="product" onclick="selectProduct('${p.name}',this)">
 <img src="${p.img}">
@@ -160,21 +148,16 @@ grid.innerHTML+=`
 
 filterCategory("watch");
 
-function filterCategory(cat){loadProducts(cat);}
-
 function selectProduct(name,el){
 selectedProduct=name;
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 el.classList.add("selected");
-
 setupCellDropdown(name);
 }
 
 function setupCellDropdown(product){
-
 const cell=document.getElementById("cellSelect");
 cell.innerHTML="";
-
 if(product==="Titan Cell"){
 cell.classList.remove("hidden");
 ["521","626","621","721","920"].forEach(c=>{
@@ -194,12 +177,11 @@ cell.innerHTML="";
 }
 
 function addToCart(){
-
 if(!selectedProduct){alert("Select product");return;}
 
 cart.push({
 product:selectedProduct,
-description:description.value,
+description:document.getElementById("description").value,
 cell:cellSelect.classList.contains("hidden")?"":cellSelect.value,
 warranty:warrantySelect.value,
 qty:parseInt(quantity.value),
@@ -211,7 +193,7 @@ clearForm();
 }
 
 function clearForm(){
-description.value="";
+document.getElementById("description").value="";
 quantity.value=1;
 price.value="";
 warrantySelect.value="";
@@ -224,7 +206,7 @@ cart.forEach((item,index)=>{
 body.innerHTML+=`
 <tr>
 <td>${item.product}</td>
-<td>${item.description}</td>
+<td>${item.description||"-"}</td>
 <td>${item.cell||"-"}</td>
 <td>${item.warranty||"-"}</td>
 <td>${item.qty}</td>
@@ -240,7 +222,6 @@ renderCart();
 }
 
 async function confirmSale(){
-
 if(cart.length===0){alert("Cart empty");return;}
 
 await Promise.all(cart.map(item=>{
@@ -250,6 +231,7 @@ headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 customerName:customerName.value,
 productName:item.product,
+description:item.description,   // ✅ FIXED
 cellName:item.cell,
 warranty:item.warranty,
 quantity:item.qty,
@@ -280,7 +262,7 @@ tbody.innerHTML+=`
 <td>${s.saleId}</td>
 <td>${s.customerName}</td>
 <td>${s.productName}</td>
-<td>-</td>
+<td>${s.description||"-"}</td>  <!-- ✅ FIXED -->
 <td>${s.cellName||"-"}</td>
 <td>${s.warranty||"-"}</td>
 <td>${s.quantity}</td>
@@ -340,7 +322,7 @@ tbody.innerHTML+=`
 <td>${s.saleId}</td>
 <td>${s.customerName}</td>
 <td>${s.productName}</td>
-<td>-</td>
+<td>${s.description||"-"}</td>  <!-- ✅ FIXED -->
 <td>${s.cellName||"-"}</td>
 <td>${s.warranty||"-"}</td>
 <td>${s.quantity}</td>
