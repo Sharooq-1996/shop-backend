@@ -15,6 +15,7 @@ type Sale struct {
 	SaleID        int       `json:"saleId"`
 	CustomerName  string    `json:"customerName"`
 	ProductName   string    `json:"productName"`
+	Description   string    `json:"description"` // ✅ ADDED
 	CellName      string    `json:"cellName"`
 	Warranty      string    `json:"warranty"`
 	Quantity      int       `json:"quantity"`
@@ -67,6 +68,7 @@ func ensureTables() {
 		sale_id SERIAL PRIMARY KEY,
 		customer_name TEXT,
 		product_name TEXT,
+		description TEXT, -- ✅ ADDED
 		cell_name TEXT,
 		warranty TEXT,
 		quantity INT,
@@ -80,14 +82,17 @@ func ensureTables() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// ✅ Safe alter for existing database
+	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS description TEXT;`)
 }
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(`
 		SELECT sale_id, customer_name, product_name,
-		       cell_name, warranty, quantity,
-		       price, payment_method, created_date
+		       description, cell_name, warranty,
+		       quantity, price, payment_method, created_date
 		FROM sales
 		ORDER BY created_date DESC
 	`)
@@ -105,6 +110,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
+			&s.Description, // ✅ ADDED
 			&s.CellName,
 			&s.Warranty,
 			&s.Quantity,
@@ -126,13 +132,15 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec(`
 		INSERT INTO sales (
-			customer_name, product_name, cell_name,
-			warranty, quantity, price, payment_method
+			customer_name, product_name, description,
+			cell_name, warranty, quantity,
+			price, payment_method
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	`,
 		sale.CustomerName,
 		sale.ProductName,
+		sale.Description, // ✅ ADDED
 		sale.CellName,
 		sale.Warranty,
 		sale.Quantity,
