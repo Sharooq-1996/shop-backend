@@ -63,12 +63,12 @@ func main() {
 
 func ensureTables() {
 
+	// 🔹 Original table creation (UNCHANGED)
 	query := `
 	CREATE TABLE IF NOT EXISTS sales (
 		sale_id SERIAL PRIMARY KEY,
 		customer_name TEXT,
 		product_name TEXT,
-		description TEXT, -- ✅ ADDED
 		cell_name TEXT,
 		warranty TEXT,
 		quantity INT,
@@ -83,16 +83,21 @@ func ensureTables() {
 		log.Fatal(err)
 	}
 
-	// ✅ Safe alter for existing database
-	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS description TEXT;`)
+	// 🔥 AUTO FIX FOR EXISTING DATABASE
+	// This runs every time safely
+	_, err = db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS description TEXT;`)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(`
 		SELECT sale_id, customer_name, product_name,
-		       description, cell_name, warranty,
-		       quantity, price, payment_method, created_date
+		       COALESCE(description, ''),
+		       cell_name, warranty, quantity,
+		       price, payment_method, created_date
 		FROM sales
 		ORDER BY created_date DESC
 	`)
@@ -110,7 +115,7 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 			&s.SaleID,
 			&s.CustomerName,
 			&s.ProductName,
-			&s.Description, // ✅ ADDED
+			&s.Description,
 			&s.CellName,
 			&s.Warranty,
 			&s.Quantity,
@@ -132,15 +137,20 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec(`
 		INSERT INTO sales (
-			customer_name, product_name, description,
-			cell_name, warranty, quantity,
-			price, payment_method
+			customer_name,
+			product_name,
+			description,
+			cell_name,
+			warranty,
+			quantity,
+			price,
+			payment_method
 		)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	`,
 		sale.CustomerName,
 		sale.ProductName,
-		sale.Description, // ✅ ADDED
+		sale.Description,
 		sale.CellName,
 		sale.Warranty,
 		sale.Quantity,
