@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>Sales - Ayan Watch and Electronics</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{font-family:Arial;background:#eef2f3;padding:20px;}
@@ -29,9 +28,11 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 }
 </style>
 </head>
+
 <body>
 
 <div class="container">
+
 <h2>Ayan Watch and Electronics - POS</h2>
 
 <div class="tabs">
@@ -46,14 +47,17 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <input id="customerName" placeholder="Customer Name">
 <input id="description" placeholder="Description">
 <select id="cellSelect" class="hidden"></select>
+
 <select id="warrantySelect">
 <option value="">Select Warranty</option>
 <option>3 Months</option>
 <option>6 Months</option>
 <option>1 Year</option>
 </select>
+
 <input id="quantity" type="number" value="1">
 <input id="price" type="number" placeholder="Enter Price">
+
 <select id="paymentMethod">
 <option>Cash</option>
 <option>UPI</option>
@@ -85,6 +89,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <hr>
 
 <h3>Sales Report</h3>
+
 <input type="date" id="searchDate">
 <button onclick="filterByDate()">Search</button>
 <button onclick="todaySales()">Today</button>
@@ -137,12 +142,12 @@ const products=[
 function filterCategory(cat){
 const grid=document.getElementById("productGrid");
 grid.innerHTML="";
-products.filter(p=>p.category===cat).forEach(p=>{
-grid.innerHTML+=`
-<div class="product" onclick="selectProduct('${p.name}',this)">
-<img src="${p.img}">
-<div>${p.name}</div>
-</div>`;
+products.filter(p=>p.category===cat).forEach(function(p){
+grid.innerHTML +=
+'<div class="product" onclick="selectProduct(\''+p.name+'\',this)">'+
+'<img src="'+p.img+'">'+
+'<div>'+p.name+'</div>'+
+'</div>';
 });
 }
 
@@ -150,7 +155,9 @@ filterCategory("watch");
 
 function selectProduct(name,el){
 selectedProduct=name;
-document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
+document.querySelectorAll(".product").forEach(function(p){
+p.classList.remove("selected");
+});
 el.classList.add("selected");
 setupCellDropdown(name);
 }
@@ -160,19 +167,18 @@ const cell=document.getElementById("cellSelect");
 cell.innerHTML="";
 if(product==="Titan Cell"){
 cell.classList.remove("hidden");
-["521","626","621","721","920"].forEach(c=>{
-cell.innerHTML+=`<option>${c}</option>`;
+["521","626","621","721","920"].forEach(function(c){
+cell.innerHTML+='<option>'+c+'</option>';
 });
 }
 else if(product==="Watch Cell"){
 cell.classList.remove("hidden");
-["G1","626","521","621","721","920","2016","2025","2032","Others"].forEach(c=>{
-cell.innerHTML+=`<option>${c}</option>`;
+["G1","626","521","621","721","920","2016","2025","2032","Others"].forEach(function(c){
+cell.innerHTML+='<option>'+c+'</option>';
 });
 }
 else{
 cell.classList.add("hidden");
-cell.innerHTML="";
 }
 }
 
@@ -193,7 +199,7 @@ clearForm();
 }
 
 function clearForm(){
-document.getElementById("description").value="";
+description.value="";
 quantity.value=1;
 price.value="";
 warrantySelect.value="";
@@ -202,17 +208,17 @@ warrantySelect.value="";
 function renderCart(){
 const body=document.getElementById("cartBody");
 body.innerHTML="";
-cart.forEach((item,index)=>{
-body.innerHTML+=`
-<tr>
-<td>${item.product}</td>
-<td>${item.description||"-"}</td>
-<td>${item.cell||"-"}</td>
-<td>${item.warranty||"-"}</td>
-<td>${item.qty}</td>
-<td>₹${item.price}</td>
-<td><button onclick="removeCart(${index})">X</button></td>
-</tr>`;
+cart.forEach(function(item,index){
+body.innerHTML+=
+"<tr>"+
+"<td>"+item.product+"</td>"+
+"<td>"+(item.description||"-")+"</td>"+
+"<td>"+(item.cell||"-")+"</td>"+
+"<td>"+(item.warranty||"-")+"</td>"+
+"<td>"+item.qty+"</td>"+
+"<td>₹"+item.price+"</td>"+
+"<td><button onclick='removeCart("+index+")'>X</button></td>"+
+"</tr>";
 });
 }
 
@@ -224,14 +230,14 @@ renderCart();
 async function confirmSale(){
 if(cart.length===0){alert("Cart empty");return;}
 
-await Promise.all(cart.map(item=>{
-return fetch("/sales/create",{
+for(const item of cart){
+await fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 customerName:customerName.value,
 productName:item.product,
-description:item.description,   // ✅ FIXED
+description:item.description,
 cellName:item.cell,
 warranty:item.warranty,
 quantity:item.qty,
@@ -239,7 +245,7 @@ price:item.price,
 paymentMethod:paymentMethod.value
 })
 });
-}));
+}
 
 cart=[];
 renderCart();
@@ -250,43 +256,84 @@ loadSales();
 function loadSales(){
 fetch("/sales")
 .then(r=>r.json())
-.then(data=>{
+.then(function(data){
+
 let totalAmount=0,totalCount=0;
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
-data.forEach(s=>{
+
+data.forEach(function(s){
+
 totalCount+=s.quantity;
 totalAmount+=s.quantity*s.price;
-tbody.innerHTML+=`
-<tr>
-<td>${s.saleId}</td>
-<td>${s.customerName}</td>
-<td>${s.productName}</td>
-<td>${s.description||"-"}</td>  <!-- ✅ FIXED -->
-<td>${s.cellName||"-"}</td>
-<td>${s.warranty||"-"}</td>
-<td>${s.quantity}</td>
-<td>₹${s.price}</td>
-<td>${s.paymentMethod}</td>
-<td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
-<td>
-<button onclick="window.print()" class="print-btn">Print</button>
-<button onclick="deleteSale(${s.saleId})">Delete</button>
-</td>
-</tr>`;
+
+tbody.innerHTML+=
+"<tr>"+
+"<td>"+s.saleId+"</td>"+
+"<td>"+s.customerName+"</td>"+
+"<td>"+s.productName+"</td>"+
+"<td>"+(s.description||"-")+"</td>"+
+"<td>"+(s.cellName||"-")+"</td>"+
+"<td>"+(s.warranty||"-")+"</td>"+
+"<td>"+s.quantity+"</td>"+
+"<td>₹"+s.price+"</td>"+
+"<td>"+s.paymentMethod+"</td>"+
+"<td>"+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</td>"+
+"<td>"+
+"<button onclick='printSingleSale("+s.saleId+")' class='print-btn'>Print</button> "+
+"<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
+"</td>"+
+"</tr>";
+
 });
+
 count.innerText=totalCount;
 amount.innerText=totalAmount.toFixed(2);
+
+});
+}
+
+function printSingleSale(id){
+
+fetch("/sales")
+.then(r=>r.json())
+.then(function(data){
+
+const s=data.find(function(x){ return x.saleId===id; });
+if(!s) return;
+
+const w=window.open("","_blank","width=400,height=600");
+
+w.document.write(
+"<h3 style='text-align:center'>Ayan Watch and Electronics</h3>"+
+"<hr>"+
+"<p><b>Customer:</b> "+s.customerName+"</p>"+
+"<p><b>Date:</b> "+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</p>"+
+"<table border='1' width='100%' cellpadding='5'>"+
+"<tr><td>Product</td><td>"+s.productName+"</td></tr>"+
+"<tr><td>Description</td><td>"+(s.description||"-")+"</td></tr>"+
+"<tr><td>Cell</td><td>"+(s.cellName||"-")+"</td></tr>"+
+"<tr><td>Warranty</td><td>"+(s.warranty||"-")+"</td></tr>"+
+"<tr><td>Qty</td><td>"+s.quantity+"</td></tr>"+
+"<tr><td>Price</td><td>₹"+s.price+"</td></tr>"+
+"<tr><td>Payment</td><td>"+s.paymentMethod+"</td></tr>"+
+"</table>"+
+"<h4>Total: ₹"+(s.quantity*s.price).toFixed(2)+"</h4>"+
+"<script>window.print();<\/script>"
+);
+
+w.document.close();
+
 });
 }
 
 function deleteSale(id){
-fetch("/sales/delete?id="+id).then(()=>loadSales());
+fetch("/sales/delete?id="+id).then(function(){loadSales();});
 }
 
 function resetAll(){
 if(confirm("Delete all data?")){
-fetch("/sales/reset",{method:"POST"}).then(()=>loadSales());
+fetch("/sales/reset",{method:"POST"}).then(function(){loadSales();});
 }
 }
 
@@ -296,17 +343,17 @@ function filterByDate(){
 const date=document.getElementById("searchDate").value;
 fetch("/sales")
 .then(r=>r.json())
-.then(data=>{
-const filtered=data.filter(s=>
-new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date);
+.then(function(data){
+const filtered=data.filter(function(s){
+return new Date(s.createdDate)
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date;
+});
 renderFiltered(filtered);
 });
 }
 
 function todaySales(){
-const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
-searchDate.value=today;
+searchDate.value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 filterByDate();
 }
 
@@ -314,27 +361,30 @@ function renderFiltered(data){
 let totalAmount=0,totalCount=0;
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
-data.forEach(s=>{
+
+data.forEach(function(s){
 totalCount+=s.quantity;
 totalAmount+=s.quantity*s.price;
-tbody.innerHTML+=`
-<tr>
-<td>${s.saleId}</td>
-<td>${s.customerName}</td>
-<td>${s.productName}</td>
-<td>${s.description||"-"}</td>  <!-- ✅ FIXED -->
-<td>${s.cellName||"-"}</td>
-<td>${s.warranty||"-"}</td>
-<td>${s.quantity}</td>
-<td>₹${s.price}</td>
-<td>${s.paymentMethod}</td>
-<td>${new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})}</td>
-<td>
-<button onclick="window.print()" class="print-btn">Print</button>
-<button onclick="deleteSale(${s.saleId})">Delete</button>
-</td>
-</tr>`;
+
+tbody.innerHTML+=
+"<tr>"+
+"<td>"+s.saleId+"</td>"+
+"<td>"+s.customerName+"</td>"+
+"<td>"+s.productName+"</td>"+
+"<td>"+(s.description||"-")+"</td>"+
+"<td>"+(s.cellName||"-")+"</td>"+
+"<td>"+(s.warranty||"-")+"</td>"+
+"<td>"+s.quantity+"</td>"+
+"<td>₹"+s.price+"</td>"+
+"<td>"+s.paymentMethod+"</td>"+
+"<td>"+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</td>"+
+"<td>"+
+"<button onclick='printSingleSale("+s.saleId+")' class='print-btn'>Print</button> "+
+"<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
+"</td>"+
+"</tr>";
 });
+
 count.innerText=totalCount;
 amount.innerText=totalAmount.toFixed(2);
 }
@@ -342,5 +392,6 @@ amount.innerText=totalAmount.toFixed(2);
 loadSales();
 
 </script>
+
 </body>
 </html>
