@@ -23,6 +23,7 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center;}
 th{background:#1f7ae0;color:white;}
 .print-btn{background:#ff9800;}
 .reset-btn{background:#f44336;}
+.hidden{display:none;}
 @media print{
 button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 }
@@ -36,7 +37,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 
 <div class="tabs">
 <button onclick="filterCategory('watch')">Watches</button>
-<button onclick="filterCategory('cell')">Watch Cell</button>
+<button onclick="filterCategory('cell')">Cells</button>
 <button onclick="filterCategory('accessory')">Accessories</button>
 </div>
 
@@ -46,13 +47,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <input id="customerName" placeholder="Customer Name">
 <input id="description" placeholder="Description">
 
-<select id="cellSelect">
-<option value="">Select Cell</option>
-<option>G1</option><option>626</option><option>521</option>
-<option>721</option><option>920</option>
-<option>2016</option><option>2025</option>
-<option>2032</option><option>Others</option>
-</select>
+<select id="cellSelect" class="hidden"></select>
 
 <select id="warrantySelect">
 <option value="">Select Warranty</option>
@@ -164,25 +159,62 @@ grid.innerHTML+=`
 }
 
 filterCategory("watch");
+
 function filterCategory(cat){loadProducts(cat);}
 
 function selectProduct(name,el){
 selectedProduct=name;
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 el.classList.add("selected");
+
+setupCellDropdown(name);
+}
+
+function setupCellDropdown(product){
+
+const cell=document.getElementById("cellSelect");
+cell.innerHTML="";
+
+if(product==="Titan Cell"){
+cell.classList.remove("hidden");
+["521","626","621","721","920"].forEach(c=>{
+cell.innerHTML+=`<option>${c}</option>`;
+});
+}
+else if(product==="Watch Cell"){
+cell.classList.remove("hidden");
+["G1","626","521","621","721","920","2016","2025","2032","Others"].forEach(c=>{
+cell.innerHTML+=`<option>${c}</option>`;
+});
+}
+else{
+cell.classList.add("hidden");
+cell.innerHTML="";
+}
 }
 
 function addToCart(){
+
 if(!selectedProduct){alert("Select product");return;}
+
 cart.push({
 product:selectedProduct,
 description:description.value,
-cell:cellSelect.value,
+cell:cellSelect.classList.contains("hidden")?"":cellSelect.value,
 warranty:warrantySelect.value,
 qty:parseInt(quantity.value),
 price:parseFloat(price.value)
 });
+
 renderCart();
+clearForm();
+}
+
+function clearForm(){
+description.value="";
+quantity.value=1;
+price.value="";
+warrantySelect.value="";
 }
 
 function renderCart(){
@@ -211,7 +243,7 @@ async function confirmSale(){
 
 if(cart.length===0){alert("Cart empty");return;}
 
-const promises=cart.map(item=>{
+await Promise.all(cart.map(item=>{
 return fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -225,12 +257,11 @@ price:item.price,
 paymentMethod:paymentMethod.value
 })
 });
-});
-
-await Promise.all(promises);
+}));
 
 cart=[];
 renderCart();
+customerName.value="";
 loadSales();
 }
 
@@ -241,12 +272,9 @@ fetch("/sales")
 let totalAmount=0,totalCount=0;
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
-const daily={};
-
 data.forEach(s=>{
 totalCount+=s.quantity;
 totalAmount+=s.quantity*s.price;
-
 tbody.innerHTML+=`
 <tr>
 <td>${s.saleId}</td>
@@ -264,22 +292,9 @@ tbody.innerHTML+=`
 <button onclick="deleteSale(${s.saleId})">Delete</button>
 </td>
 </tr>`;
-
-const d=new Date(s.createdDate)
-.toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
-daily[d]=(daily[d]||0)+(s.quantity*s.price);
 });
-
 count.innerText=totalCount;
 amount.innerText=totalAmount.toFixed(2);
-
-if(salesChart) salesChart.destroy();
-
-salesChart=new Chart(document.getElementById("chart"),{
-type:"bar",
-data:{labels:Object.keys(daily),
-datasets:[{label:"Daily Sales ₹",data:Object.values(daily)}]}
-});
 });
 }
 
