@@ -23,8 +23,10 @@ th{background:#1f7ae0;color:white;}
 .print-btn{background:#ff9800;}
 .reset-btn{background:#f44336;}
 .hidden{display:none;}
+.barcode-box{position:fixed;top:15px;right:30px;z-index:999;}
+.barcode-box input{padding:8px;width:220px;}
 @media print{
-button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
+button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 }
 </style>
 </head>
@@ -34,6 +36,11 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <div class="container">
 
 <h2>Ayan Watch and Electronics - POS</h2>
+
+<!-- 🔥 Barcode Scanner Input -->
+<div class="barcode-box">
+<input type="text" id="barcodeInput" placeholder="Scan Barcode Here" autofocus>
+</div>
 
 <div class="tabs">
 <button onclick="filterCategory('watch')">Watches</button>
@@ -125,6 +132,8 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 let selectedProduct="";
 let cart=[];
 
+/* ================= PRODUCTS ================= */
+
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
 {name:"Gents Chain Watch",category:"watch",img:"./gents-chain.png"},
@@ -138,6 +147,38 @@ const products=[
 {name:"Chain",category:"accessory",img:"./chain.png"},
 {name:"Repair",category:"accessory",img:"./repair.png"}
 ];
+
+/* ================= BARCODE MAP ================= */
+
+const barcodeMap={
+"GBW001":{product:"Gents Belt Watch"},
+"GCW001":{product:"Gents Chain Watch"},
+"LBW001":{product:"Ladies Belt Watch"},
+"LCW001":{product:"Ladies Chain Watch"},
+"WC001":{product:"Wall Clock"},
+"AT001":{product:"Alarm Timepiece"},
+"STR001":{product:"Strap"},
+"CHN001":{product:"Chain"},
+"REP001":{product:"Repair"},
+
+"TC-521":{product:"Titan Cell",cell:"521"},
+"TC-626":{product:"Titan Cell",cell:"626"},
+"TC-721":{product:"Titan Cell",cell:"721"},
+"TC-920":{product:"Titan Cell",cell:"920"},
+
+"WC-G1":{product:"Watch Cell",cell:"G1"},
+"WC-626":{product:"Watch Cell",cell:"626"},
+"WC-521":{product:"Watch Cell",cell:"521"},
+"WC-621":{product:"Watch Cell",cell:"621"},
+"WC-721":{product:"Watch Cell",cell:"721"},
+"WC-920":{product:"Watch Cell",cell:"920"},
+"WC-2016":{product:"Watch Cell",cell:"2016"},
+"WC-2025":{product:"Watch Cell",cell:"2025"},
+"WC-2032":{product:"Watch Cell",cell:"2032"},
+"WC-OTH":{product:"Watch Cell",cell:"Others"}
+};
+
+/* ================= CATEGORY ================= */
 
 function filterCategory(cat){
 const grid=document.getElementById("productGrid");
@@ -153,14 +194,18 @@ grid.innerHTML +=
 
 filterCategory("watch");
 
+/* ================= SELECT PRODUCT ================= */
+
 function selectProduct(name,el){
 selectedProduct=name;
 document.querySelectorAll(".product").forEach(function(p){
 p.classList.remove("selected");
 });
-el.classList.add("selected");
+if(el) el.classList.add("selected");
 setupCellDropdown(name);
 }
+
+/* ================= CELL DROPDOWN ================= */
 
 function setupCellDropdown(product){
 const cell=document.getElementById("cellSelect");
@@ -182,12 +227,52 @@ cell.classList.add("hidden");
 }
 }
 
+/* ================= BARCODE SCAN ================= */
+
+document.getElementById("barcodeInput").addEventListener("keypress",function(e){
+if(e.key==="Enter"){
+const code=this.value.trim();
+const item=barcodeMap[code];
+if(!item){alert("Invalid Barcode");this.value="";return;}
+
+selectedProduct=item.product;
+
+/* Switch category automatically */
+const prod=products.find(p=>p.name===item.product);
+if(prod) filterCategory(prod.category);
+
+/* Highlight selected product */
+setTimeout(function(){
+document.querySelectorAll(".product").forEach(function(p){
+if(p.innerText===item.product){
+p.classList.add("selected");
+}
+});
+},100);
+
+setupCellDropdown(item.product);
+
+if(item.cell){
+setTimeout(function(){
+cellSelect.value=item.cell;
+},100);
+}
+
+quantity.value=1;
+price.focus();
+
+this.value="";
+}
+});
+
+/* ================= REST OF YOUR ORIGINAL CODE (UNCHANGED) ================= */
+
 function addToCart(){
 if(!selectedProduct){alert("Select product");return;}
 
 cart.push({
 product:selectedProduct,
-description:document.getElementById("description").value,
+description:description.value,
 cell:cellSelect.classList.contains("hidden")?"":cellSelect.value,
 warranty:warrantySelect.value,
 qty:parseInt(quantity.value),
@@ -229,7 +314,6 @@ renderCart();
 
 async function confirmSale(){
 if(cart.length===0){alert("Cart empty");return;}
-
 for(const item of cart){
 await fetch("/sales/create",{
 method:"POST",
@@ -246,7 +330,6 @@ paymentMethod:paymentMethod.value
 })
 });
 }
-
 cart=[];
 renderCart();
 customerName.value="";
@@ -257,16 +340,12 @@ function loadSales(){
 fetch("/sales")
 .then(r=>r.json())
 .then(function(data){
-
 let totalAmount=0,totalCount=0;
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
-
 data.forEach(function(s){
-
 totalCount+=s.quantity;
 totalAmount+=s.quantity*s.price;
-
 tbody.innerHTML+=
 "<tr>"+
 "<td>"+s.saleId+"</td>"+
@@ -284,26 +363,19 @@ tbody.innerHTML+=
 "<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
 "</td>"+
 "</tr>";
-
 });
-
 count.innerText=totalCount;
 amount.innerText=totalAmount.toFixed(2);
-
 });
 }
 
 function printSingleSale(id){
-
 fetch("/sales")
 .then(r=>r.json())
 .then(function(data){
-
 const s=data.find(function(x){ return x.saleId===id; });
 if(!s) return;
-
 const w=window.open("","_blank","width=400,height=600");
-
 w.document.write(
 "<h3 style='text-align:center'>Ayan Watch and Electronics</h3>"+
 "<hr>"+
@@ -321,9 +393,7 @@ w.document.write(
 "<h4>Total: ₹"+(s.quantity*s.price).toFixed(2)+"</h4>"+
 "<script>window.print();<\/script>"
 );
-
 w.document.close();
-
 });
 }
 
@@ -361,11 +431,9 @@ function renderFiltered(data){
 let totalAmount=0,totalCount=0;
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
-
 data.forEach(function(s){
 totalCount+=s.quantity;
 totalAmount+=s.quantity*s.price;
-
 tbody.innerHTML+=
 "<tr>"+
 "<td>"+s.saleId+"</td>"+
@@ -384,7 +452,6 @@ tbody.innerHTML+=
 "</td>"+
 "</tr>";
 });
-
 count.innerText=totalCount;
 amount.innerText=totalAmount.toFixed(2);
 }
