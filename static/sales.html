@@ -51,6 +51,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 
 <div class="form-grid">
 
+<!-- 🔥 FIXED VALUE BASED DROPDOWN -->
 <select id="shopSelect">
 <option value="Gandhipark">Ayan Watch - Gandhipark Branch</option>
 <option value="KurnoolRoad">Ayan Watch - Kurnool Road Branch</option>
@@ -303,11 +304,12 @@ tbody.innerHTML="";
 
 data.forEach(function(s){
 
-if(s.shopName==="Gandhipark"){
+if(s.shopName && s.shopName.includes("Gandhipark")){
 gpCount+=s.quantity;
 gpAmount+=s.quantity*s.price;
 }
-if(s.shopName==="KurnoolRoad"){
+
+if(s.shopName && s.shopName.includes("Kurnool")){
 krCount+=s.quantity;
 krAmount+=s.quantity*s.price;
 }
@@ -330,14 +332,12 @@ tbody.innerHTML+=
 "<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
 "</td>"+
 "</tr>";
-
 });
 
-gpCountSpan.innerText=gpCount;
-gpAmountSpan.innerText=gpAmount.toFixed(2);
-
-krCountSpan.innerText=krCount;
-krAmountSpan.innerText=krAmount.toFixed(2);
+document.getElementById("gpCount").innerText=gpCount;
+document.getElementById("gpAmount").innerText=gpAmount.toFixed(2);
+document.getElementById("krCount").innerText=krCount;
+document.getElementById("krAmount").innerText=krAmount.toFixed(2);
 }
 
 loadSales();
