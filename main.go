@@ -13,7 +13,7 @@ import (
 
 type Sale struct {
 	SaleID        int       `json:"saleId"`
-	ShopName      string    `json:"shopName"`
+	ShopName      string    `json:"shopName"` // ✅ Added
 	CustomerName  string    `json:"customerName"`
 	ProductName   string    `json:"productName"`
 	Description   string    `json:"description"`
@@ -45,6 +45,9 @@ func main() {
 	}
 
 	ensureTables()
+
+	// 🔥 One-time fix for old records without branch
+	db.Exec("UPDATE sales SET shop_name='KurnoolRoad' WHERE shop_name IS NULL OR shop_name=''")
 
 	http.HandleFunc("/sales", getSales)
 	http.HandleFunc("/sales/create", createSale)
@@ -85,8 +88,16 @@ func ensureTables() {
 		log.Fatal(err)
 	}
 
-	_, _ = db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS shop_name TEXT;`)
-	_, _ = db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS description TEXT;`)
+	// 🔥 Auto-fix for existing databases
+	_, err = db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS shop_name TEXT;`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS description TEXT;`)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func getSales(w http.ResponseWriter, r *http.Request) {
@@ -98,9 +109,8 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 
 	if shop != "" {
 		rows, err = db.Query(`
-			SELECT sale_id, COALESCE(shop_name,''),
-			       customer_name, product_name,
-			       COALESCE(description,''),
+			SELECT sale_id, shop_name, customer_name, product_name,
+			       COALESCE(description, ''),
 			       cell_name, warranty, quantity,
 			       price, payment_method, created_date
 			FROM sales
@@ -109,9 +119,8 @@ func getSales(w http.ResponseWriter, r *http.Request) {
 		`, shop)
 	} else {
 		rows, err = db.Query(`
-			SELECT sale_id, COALESCE(shop_name,''),
-			       customer_name, product_name,
-			       COALESCE(description,''),
+			SELECT sale_id, shop_name, customer_name, product_name,
+			       COALESCE(description, ''),
 			       cell_name, warranty, quantity,
 			       price, payment_method, created_date
 			FROM sales
