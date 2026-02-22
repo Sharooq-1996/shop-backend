@@ -51,6 +51,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:no
 
 <input id="customerName" placeholder="Customer Name">
 <input id="description" placeholder="Description">
+
 <select id="cellSelect" class="hidden"></select>
 
 <select id="warrantySelect">
@@ -176,8 +177,44 @@ filterCategory("watch");
 
 function selectProduct(name,el){
 selectedProduct=name;
+
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 if(el) el.classList.add("selected");
+
+const cellSelect=document.getElementById("cellSelect");
+
+if(name==="Watch Cell"){
+cellSelect.classList.remove("hidden");
+cellSelect.innerHTML=`
+<option value="">Select Watch Cell</option>
+<option>G1</option>
+<option>521</option>
+<option>626</option>
+<option>621</option>
+<option>721</option>
+<option>920</option>
+<option>2016</option>
+<option>2025</option>
+<option>2032</option>
+<option>Others</option>
+`;
+}
+else if(name==="Titan Cell"){
+cellSelect.classList.remove("hidden");
+cellSelect.innerHTML=`
+<option value="">Select Titan Cell</option>
+<option>521</option>
+<option>626</option>
+<option>621</option>
+<option>721</option>
+<option>920</option>
+<option>Others</option>
+`;
+}
+else{
+cellSelect.classList.add("hidden");
+cellSelect.innerHTML="";
+}
 }
 
 function addToCart(){
@@ -186,11 +223,12 @@ if(!selectedProduct){alert("Select product");return;}
 cart.push({
 product:selectedProduct,
 description:description.value,
-cell:"",
+cell:cellSelect.value,
 warranty:warrantySelect.value,
 qty:parseInt(quantity.value),
 price:parseFloat(price.value)
 });
+
 renderCart();
 clearForm();
 }
@@ -200,6 +238,7 @@ description.value="";
 quantity.value=1;
 price.value="";
 warrantySelect.value="";
+cellSelect.value="";
 }
 
 function renderCart(){
@@ -210,7 +249,7 @@ body.innerHTML+=
 "<tr>"+
 "<td>"+item.product+"</td>"+
 "<td>"+(item.description||"-")+"</td>"+
-"<td>-</td>"+
+"<td>"+(item.cell||"-")+"</td>"+
 "<td>"+(item.warranty||"-")+"</td>"+
 "<td>"+item.qty+"</td>"+
 "<td>₹"+item.price+"</td>"+
@@ -226,6 +265,7 @@ renderCart();
 
 async function confirmSale(){
 if(cart.length===0){alert("Cart empty");return;}
+
 for(const item of cart){
 await fetch("/sales/create",{
 method:"POST",
@@ -235,7 +275,7 @@ shopName:shopSelect.value,
 customerName:customerName.value,
 productName:item.product,
 description:item.description,
-cellName:"",
+cellName:item.cell,
 warranty:item.warranty,
 quantity:item.qty,
 price:item.price,
@@ -243,6 +283,7 @@ paymentMethod:paymentMethod.value
 })
 });
 }
+
 cart=[];
 renderCart();
 customerName.value="";
@@ -259,7 +300,6 @@ applyFilters();
 }
 
 function applyFilters(){
-
 let filtered=[...allSalesData];
 
 const branchFilter=document.getElementById("reportBranchFilter").value;
@@ -271,8 +311,7 @@ filtered=filtered.filter(s=>s.shopName===branchFilter);
 
 if(dateFilter){
 filtered=filtered.filter(s=>
-new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===dateFilter
+new Date(s.createdDate).toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===dateFilter
 );
 }
 
@@ -280,15 +319,14 @@ renderTable(filtered);
 }
 
 function todaySales(){
-searchDate.value=new Date()
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+searchDate.value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 applyFilters();
 }
 
 function renderTable(data){
 
-let gpCount=0,gpAmount=0;
-let krCount=0,krAmount=0;
+let gpCountVal=0,gpAmountVal=0;
+let krCountVal=0,krAmountVal=0;
 
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
@@ -296,18 +334,18 @@ tbody.innerHTML="";
 data.forEach(function(s){
 
 if(s.shopName==="Gandhipark"){
-gpCount+=s.quantity;
-gpAmount+=s.quantity*s.price;
+gpCountVal+=s.quantity;
+gpAmountVal+=s.quantity*s.price;
 }
 if(s.shopName==="KurnoolRoad"){
-krCount+=s.quantity;
-krAmount+=s.quantity*s.price;
+krCountVal+=s.quantity;
+krAmountVal+=s.quantity*s.price;
 }
 
 tbody.innerHTML+=
 "<tr>"+
 "<td>"+s.saleId+"</td>"+
-"<td>"+(s.shopName||"-")+"</td>"+
+"<td>"+s.shopName+"</td>"+
 "<td>"+s.customerName+"</td>"+
 "<td>"+s.productName+"</td>"+
 "<td>"+(s.description||"-")+"</td>"+
@@ -324,10 +362,10 @@ tbody.innerHTML+=
 "</tr>";
 });
 
-gpCountElem.innerText=gpCount;
-gpAmountElem.innerText=gpAmount.toFixed(2);
-krCountElem.innerText=krCount;
-krAmountElem.innerText=krAmount.toFixed(2);
+document.getElementById("gpCount").innerText=gpCountVal;
+document.getElementById("gpAmount").innerText=gpAmountVal.toFixed(2);
+document.getElementById("krCount").innerText=krCountVal;
+document.getElementById("krAmount").innerText=krAmountVal.toFixed(2);
 }
 
 function printSingleSale(id){
@@ -339,11 +377,10 @@ w.document.write(
 "<h3 style='text-align:center'>Ayan Watch and Electronics</h3>"+
 "<p><b>Branch:</b> "+s.shopName+"</p>"+
 "<p><b>Customer:</b> "+s.customerName+"</p>"+
-"<p><b>Date:</b> "+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</p>"+
 "<hr>"+
 "<p><b>Product:</b> "+s.productName+"</p>"+
+"<p><b>Cell:</b> "+(s.cellName||"-")+"</p>"+
 "<p><b>Qty:</b> "+s.quantity+"</p>"+
-"<p><b>Price:</b> ₹"+s.price+"</p>"+
 "<p><b>Total:</b> ₹"+(s.quantity*s.price).toFixed(2)+"</p>"+
 "<script>window.print();<\/script>"
 );
@@ -365,6 +402,5 @@ function printAll(){window.print();}
 loadSales();
 
 </script>
-
 </body>
 </html>
