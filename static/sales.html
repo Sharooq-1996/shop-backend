@@ -198,11 +198,53 @@ cell.classList.add("hidden");
 }
 }
 
-/* ---------------- CONFIRM SALE UPDATED ---------------- */
+function addToCart(){
+if(!selectedProduct){alert("Select product");return;}
+
+cart.push({
+product:selectedProduct,
+description:description.value,
+cell:cellSelect.classList.contains("hidden")?"":cellSelect.value,
+warranty:warrantySelect.value,
+qty:parseInt(quantity.value),
+price:parseFloat(price.value)
+});
+
+renderCart();
+clearForm();
+}
+
+function clearForm(){
+description.value="";
+quantity.value=1;
+price.value="";
+warrantySelect.value="";
+}
+
+function renderCart(){
+const body=document.getElementById("cartBody");
+body.innerHTML="";
+cart.forEach(function(item,index){
+body.innerHTML+=
+"<tr>"+
+"<td>"+item.product+"</td>"+
+"<td>"+(item.description||"-")+"</td>"+
+"<td>"+(item.cell||"-")+"</td>"+
+"<td>"+(item.warranty||"-")+"</td>"+
+"<td>"+item.qty+"</td>"+
+"<td>₹"+item.price+"</td>"+
+"<td><button onclick='removeCart("+index+")'>X</button></td>"+
+"</tr>";
+});
+}
+
+function removeCart(i){
+cart.splice(i,1);
+renderCart();
+}
 
 async function confirmSale(){
 if(cart.length===0){alert("Cart empty");return;}
-
 for(const item of cart){
 await fetch("/sales/create",{
 method:"POST",
@@ -220,19 +262,39 @@ paymentMethod:paymentMethod.value
 })
 });
 }
-
 cart=[];
 renderCart();
 customerName.value="";
 loadSales();
 }
 
-/* ---------------- LOAD SALES UPDATED ---------------- */
-
 function loadSales(){
 fetch("/sales")
 .then(r=>r.json())
 .then(function(data){
+renderFiltered(data);
+});
+}
+
+function filterByDate(){
+const date=document.getElementById("searchDate").value;
+fetch("/sales")
+.then(r=>r.json())
+.then(function(data){
+const filtered=data.filter(s =>
+new Date(s.createdDate)
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date);
+renderFiltered(filtered);
+});
+}
+
+function todaySales(){
+searchDate.value=new Date()
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+filterByDate();
+}
+
+function renderFiltered(data){
 
 let gpCount=0,gpAmount=0,krCount=0,krAmount=0;
 
@@ -268,6 +330,7 @@ tbody.innerHTML+=
 "<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
 "</td>"+
 "</tr>";
+
 });
 
 gpCountSpan.innerText=gpCount;
@@ -275,8 +338,6 @@ gpAmountSpan.innerText=gpAmount.toFixed(2);
 
 krCountSpan.innerText=krCount;
 krAmountSpan.innerText=krAmount.toFixed(2);
-
-});
 }
 
 loadSales();
