@@ -24,13 +24,12 @@ th{background:#1f7ae0;color:white;}
 .reset-btn{background:#f44336;}
 .hidden{display:none;}
 @media print{
-button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
+button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:none;}
 }
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
 <h2>Ayan Watch and Electronics - POS</h2>
@@ -45,7 +44,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 
 <div class="form-grid">
 
-<select id="shopSelect" onchange="loadSales()">
+<select id="shopSelect">
 <option value="Gandhipark">Ayan Watch - Gandhipark Branch</option>
 <option value="KurnoolRoad">Ayan Watch - Kurnool Road Branch</option>
 </select>
@@ -97,12 +96,27 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 <h3>Sales Report</h3>
 
 <input type="date" id="searchDate">
-<button onclick="filterByDate()">Search</button>
+<button onclick="applyFilters()">Search</button>
 <button onclick="todaySales()">Today</button>
 
+<select id="reportBranchFilter" onchange="applyFilters()">
+<option value="All">All Branches</option>
+<option value="Gandhipark">Gandhipark Branch</option>
+<option value="KurnoolRoad">Kurnool Road Branch</option>
+</select>
+
 <div class="summary">
-<div class="box">Total Sales Count<br><span id="count">0</span></div>
-<div class="box">Total Sales Amount ₹<br><span id="amount">0.00</span></div>
+<div class="box">
+Gandhipark Branch<br>
+Count: <span id="gpCount">0</span><br>
+Amount ₹ <span id="gpAmount">0.00</span>
+</div>
+
+<div class="box">
+Kurnool Road Branch<br>
+Count: <span id="krCount">0</span><br>
+Amount ₹ <span id="krAmount">0.00</span>
+</div>
 </div>
 
 <table>
@@ -131,6 +145,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 
 let selectedProduct="";
 let cart=[];
+let allSalesData=[];
 
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
@@ -235,42 +250,64 @@ loadSales();
 }
 
 function loadSales(){
-fetch("/sales?shop=" + shopSelect.value)
-.then(r=>r.json())
-.then(data=>renderTable(data));
-}
-
-function filterByDate(){
-const date=document.getElementById("searchDate").value;
-fetch("/sales?shop=" + shopSelect.value)
+fetch("/sales")
 .then(r=>r.json())
 .then(function(data){
-const filtered=data.filter(function(s){
-return new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date;
+allSalesData=data;
+applyFilters();
 });
+}
+
+function applyFilters(){
+
+let filtered=[...allSalesData];
+
+const branchFilter=document.getElementById("reportBranchFilter").value;
+const dateFilter=document.getElementById("searchDate").value;
+
+if(branchFilter!=="All"){
+filtered=filtered.filter(s=>s.shopName===branchFilter);
+}
+
+if(dateFilter){
+filtered=filtered.filter(s=>
+new Date(s.createdDate)
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===dateFilter
+);
+}
+
 renderTable(filtered);
-});
 }
 
 function todaySales(){
 searchDate.value=new Date()
 .toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
-filterByDate();
+applyFilters();
 }
 
 function renderTable(data){
-let totalCount=0;
-let totalAmount=0;
+
+let gpCount=0,gpAmount=0;
+let krCount=0,krAmount=0;
+
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
+
 data.forEach(function(s){
-totalCount+=s.quantity;
-totalAmount+=s.quantity*s.price;
+
+if(s.shopName==="Gandhipark"){
+gpCount+=s.quantity;
+gpAmount+=s.quantity*s.price;
+}
+if(s.shopName==="KurnoolRoad"){
+krCount+=s.quantity;
+krAmount+=s.quantity*s.price;
+}
+
 tbody.innerHTML+=
 "<tr>"+
 "<td>"+s.saleId+"</td>"+
-"<td>"+s.shopName+"</td>"+
+"<td>"+(s.shopName||"-")+"</td>"+
 "<td>"+s.customerName+"</td>"+
 "<td>"+s.productName+"</td>"+
 "<td>"+(s.description||"-")+"</td>"+
@@ -281,13 +318,49 @@ tbody.innerHTML+=
 "<td>"+s.paymentMethod+"</td>"+
 "<td>"+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</td>"+
 "<td>"+
+"<button onclick='printSingleSale("+s.saleId+")' class='print-btn'>Print</button> "+
 "<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
 "</td>"+
 "</tr>";
 });
-count.innerText=totalCount;
-amount.innerText=totalAmount.toFixed(2);
+
+gpCountElem.innerText=gpCount;
+gpAmountElem.innerText=gpAmount.toFixed(2);
+krCountElem.innerText=krCount;
+krAmountElem.innerText=krAmount.toFixed(2);
 }
+
+function printSingleSale(id){
+const s=allSalesData.find(x=>x.saleId===id);
+if(!s) return;
+
+const w=window.open("","_blank","width=400,height=600");
+w.document.write(
+"<h3 style='text-align:center'>Ayan Watch and Electronics</h3>"+
+"<p><b>Branch:</b> "+s.shopName+"</p>"+
+"<p><b>Customer:</b> "+s.customerName+"</p>"+
+"<p><b>Date:</b> "+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</p>"+
+"<hr>"+
+"<p><b>Product:</b> "+s.productName+"</p>"+
+"<p><b>Qty:</b> "+s.quantity+"</p>"+
+"<p><b>Price:</b> ₹"+s.price+"</p>"+
+"<p><b>Total:</b> ₹"+(s.quantity*s.price).toFixed(2)+"</p>"+
+"<script>window.print();<\/script>"
+);
+w.document.close();
+}
+
+function deleteSale(id){
+fetch("/sales/delete?id="+id).then(loadSales);
+}
+
+function resetAll(){
+if(confirm("Delete all data?")){
+fetch("/sales/reset",{method:"POST"}).then(loadSales);
+}
+}
+
+function printAll(){window.print();}
 
 loadSales();
 
