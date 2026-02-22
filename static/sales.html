@@ -37,7 +37,6 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 
 <h2>Ayan Watch and Electronics - POS</h2>
 
-<!-- 🔥 Barcode Scanner Input -->
 <div class="barcode-box">
 <input type="text" id="barcodeInput" placeholder="Scan Barcode Here" autofocus>
 </div>
@@ -51,6 +50,12 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 <div class="product-grid" id="productGrid"></div>
 
 <div class="form-grid">
+
+<select id="shopSelect">
+<option value="Gandhipark">Ayan Watch - Gandhipark Branch</option>
+<option value="KurnoolRoad">Ayan Watch - Kurnool Road Branch</option>
+</select>
+
 <input id="customerName" placeholder="Customer Name">
 <input id="description" placeholder="Description">
 <select id="cellSelect" class="hidden"></select>
@@ -102,14 +107,24 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 <button onclick="todaySales()">Today</button>
 
 <div class="summary">
-<div class="box">Total Sales Count<br><span id="count">0</span></div>
-<div class="box">Total Sales Amount ₹<br><span id="amount">0</span></div>
+<div class="box">
+Gandhipark Branch<br>
+Count: <span id="gpCount">0</span><br>
+Amount ₹ <span id="gpAmount">0</span>
+</div>
+
+<div class="box">
+Kurnool Road Branch<br>
+Count: <span id="krCount">0</span><br>
+Amount ₹ <span id="krAmount">0</span>
+</div>
 </div>
 
 <table>
 <thead>
 <tr>
 <th>ID</th>
+<th>Branch</th>
 <th>Customer</th>
 <th>Product</th>
 <th>Description</th>
@@ -132,8 +147,6 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 let selectedProduct="";
 let cart=[];
 
-/* ================= PRODUCTS ================= */
-
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
 {name:"Gents Chain Watch",category:"watch",img:"./gents-chain.png"},
@@ -148,38 +161,6 @@ const products=[
 {name:"Repair",category:"accessory",img:"./repair.png"}
 ];
 
-/* ================= BARCODE MAP ================= */
-
-const barcodeMap={
-"GBW001":{product:"Gents Belt Watch"},
-"GCW001":{product:"Gents Chain Watch"},
-"LBW001":{product:"Ladies Belt Watch"},
-"LCW001":{product:"Ladies Chain Watch"},
-"WC001":{product:"Wall Clock"},
-"AT001":{product:"Alarm Timepiece"},
-"STR001":{product:"Strap"},
-"CHN001":{product:"Chain"},
-"REP001":{product:"Repair"},
-
-"TC-521":{product:"Titan Cell",cell:"521"},
-"TC-626":{product:"Titan Cell",cell:"626"},
-"TC-721":{product:"Titan Cell",cell:"721"},
-"TC-920":{product:"Titan Cell",cell:"920"},
-
-"WC-G1":{product:"Watch Cell",cell:"G1"},
-"WC-626":{product:"Watch Cell",cell:"626"},
-"WC-521":{product:"Watch Cell",cell:"521"},
-"WC-621":{product:"Watch Cell",cell:"621"},
-"WC-721":{product:"Watch Cell",cell:"721"},
-"WC-920":{product:"Watch Cell",cell:"920"},
-"WC-2016":{product:"Watch Cell",cell:"2016"},
-"WC-2025":{product:"Watch Cell",cell:"2025"},
-"WC-2032":{product:"Watch Cell",cell:"2032"},
-"WC-OTH":{product:"Watch Cell",cell:"Others"}
-};
-
-/* ================= CATEGORY ================= */
-
 function filterCategory(cat){
 const grid=document.getElementById("productGrid");
 grid.innerHTML="";
@@ -191,134 +172,43 @@ grid.innerHTML +=
 '</div>';
 });
 }
-
 filterCategory("watch");
-
-/* ================= SELECT PRODUCT ================= */
 
 function selectProduct(name,el){
 selectedProduct=name;
-document.querySelectorAll(".product").forEach(function(p){
-p.classList.remove("selected");
-});
+document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 if(el) el.classList.add("selected");
 setupCellDropdown(name);
 }
-
-/* ================= CELL DROPDOWN ================= */
 
 function setupCellDropdown(product){
 const cell=document.getElementById("cellSelect");
 cell.innerHTML="";
 if(product==="Titan Cell"){
 cell.classList.remove("hidden");
-["521","626","621","721","920"].forEach(function(c){
-cell.innerHTML+='<option>'+c+'</option>';
-});
+["521","626","621","721","920"].forEach(c=>cell.innerHTML+='<option>'+c+'</option>');
 }
 else if(product==="Watch Cell"){
 cell.classList.remove("hidden");
-["G1","626","521","621","721","920","2016","2025","2032","Others"].forEach(function(c){
-cell.innerHTML+='<option>'+c+'</option>';
-});
+["G1","626","521","621","721","920","2016","2025","2032","Others"]
+.forEach(c=>cell.innerHTML+='<option>'+c+'</option>');
 }
 else{
 cell.classList.add("hidden");
 }
 }
 
-/* ================= BARCODE SCAN ================= */
-
-document.getElementById("barcodeInput").addEventListener("keypress",function(e){
-if(e.key==="Enter"){
-const code=this.value.trim();
-const item=barcodeMap[code];
-if(!item){alert("Invalid Barcode");this.value="";return;}
-
-selectedProduct=item.product;
-
-/* Switch category automatically */
-const prod=products.find(p=>p.name===item.product);
-if(prod) filterCategory(prod.category);
-
-/* Highlight selected product */
-setTimeout(function(){
-document.querySelectorAll(".product").forEach(function(p){
-if(p.innerText===item.product){
-p.classList.add("selected");
-}
-});
-},100);
-
-setupCellDropdown(item.product);
-
-if(item.cell){
-setTimeout(function(){
-cellSelect.value=item.cell;
-},100);
-}
-
-quantity.value=1;
-price.focus();
-
-this.value="";
-}
-});
-
-/* ================= REST OF YOUR ORIGINAL CODE (UNCHANGED) ================= */
-
-function addToCart(){
-if(!selectedProduct){alert("Select product");return;}
-
-cart.push({
-product:selectedProduct,
-description:description.value,
-cell:cellSelect.classList.contains("hidden")?"":cellSelect.value,
-warranty:warrantySelect.value,
-qty:parseInt(quantity.value),
-price:parseFloat(price.value)
-});
-
-renderCart();
-clearForm();
-}
-
-function clearForm(){
-description.value="";
-quantity.value=1;
-price.value="";
-warrantySelect.value="";
-}
-
-function renderCart(){
-const body=document.getElementById("cartBody");
-body.innerHTML="";
-cart.forEach(function(item,index){
-body.innerHTML+=
-"<tr>"+
-"<td>"+item.product+"</td>"+
-"<td>"+(item.description||"-")+"</td>"+
-"<td>"+(item.cell||"-")+"</td>"+
-"<td>"+(item.warranty||"-")+"</td>"+
-"<td>"+item.qty+"</td>"+
-"<td>₹"+item.price+"</td>"+
-"<td><button onclick='removeCart("+index+")'>X</button></td>"+
-"</tr>";
-});
-}
-
-function removeCart(i){
-cart.splice(i,1);
-renderCart();
-}
+/* ---------------- CONFIRM SALE UPDATED ---------------- */
 
 async function confirmSale(){
 if(cart.length===0){alert("Cart empty");return;}
+
 for(const item of cart){
 await fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
+shopName:shopSelect.value,
 customerName:customerName.value,
 productName:item.product,
 description:item.description,
@@ -330,25 +220,40 @@ paymentMethod:paymentMethod.value
 })
 });
 }
+
 cart=[];
 renderCart();
 customerName.value="";
 loadSales();
 }
 
+/* ---------------- LOAD SALES UPDATED ---------------- */
+
 function loadSales(){
 fetch("/sales")
 .then(r=>r.json())
 .then(function(data){
-let totalAmount=0,totalCount=0;
+
+let gpCount=0,gpAmount=0,krCount=0,krAmount=0;
+
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
+
 data.forEach(function(s){
-totalCount+=s.quantity;
-totalAmount+=s.quantity*s.price;
+
+if(s.shopName==="Gandhipark"){
+gpCount+=s.quantity;
+gpAmount+=s.quantity*s.price;
+}
+if(s.shopName==="KurnoolRoad"){
+krCount+=s.quantity;
+krAmount+=s.quantity*s.price;
+}
+
 tbody.innerHTML+=
 "<tr>"+
 "<td>"+s.saleId+"</td>"+
+"<td>"+(s.shopName||"-")+"</td>"+
 "<td>"+s.customerName+"</td>"+
 "<td>"+s.productName+"</td>"+
 "<td>"+(s.description||"-")+"</td>"+
@@ -364,96 +269,14 @@ tbody.innerHTML+=
 "</td>"+
 "</tr>";
 });
-count.innerText=totalCount;
-amount.innerText=totalAmount.toFixed(2);
+
+gpCountSpan.innerText=gpCount;
+gpAmountSpan.innerText=gpAmount.toFixed(2);
+
+krCountSpan.innerText=krCount;
+krAmountSpan.innerText=krAmount.toFixed(2);
+
 });
-}
-
-function printSingleSale(id){
-fetch("/sales")
-.then(r=>r.json())
-.then(function(data){
-const s=data.find(function(x){ return x.saleId===id; });
-if(!s) return;
-const w=window.open("","_blank","width=400,height=600");
-w.document.write(
-"<h3 style='text-align:center'>Ayan Watch and Electronics</h3>"+
-"<hr>"+
-"<p><b>Customer:</b> "+s.customerName+"</p>"+
-"<p><b>Date:</b> "+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</p>"+
-"<table border='1' width='100%' cellpadding='5'>"+
-"<tr><td>Product</td><td>"+s.productName+"</td></tr>"+
-"<tr><td>Description</td><td>"+(s.description||"-")+"</td></tr>"+
-"<tr><td>Cell</td><td>"+(s.cellName||"-")+"</td></tr>"+
-"<tr><td>Warranty</td><td>"+(s.warranty||"-")+"</td></tr>"+
-"<tr><td>Qty</td><td>"+s.quantity+"</td></tr>"+
-"<tr><td>Price</td><td>₹"+s.price+"</td></tr>"+
-"<tr><td>Payment</td><td>"+s.paymentMethod+"</td></tr>"+
-"</table>"+
-"<h4>Total: ₹"+(s.quantity*s.price).toFixed(2)+"</h4>"+
-"<script>window.print();<\/script>"
-);
-w.document.close();
-});
-}
-
-function deleteSale(id){
-fetch("/sales/delete?id="+id).then(function(){loadSales();});
-}
-
-function resetAll(){
-if(confirm("Delete all data?")){
-fetch("/sales/reset",{method:"POST"}).then(function(){loadSales();});
-}
-}
-
-function printAll(){window.print();}
-
-function filterByDate(){
-const date=document.getElementById("searchDate").value;
-fetch("/sales")
-.then(r=>r.json())
-.then(function(data){
-const filtered=data.filter(function(s){
-return new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date;
-});
-renderFiltered(filtered);
-});
-}
-
-function todaySales(){
-searchDate.value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
-filterByDate();
-}
-
-function renderFiltered(data){
-let totalAmount=0,totalCount=0;
-const tbody=document.getElementById("salesBody");
-tbody.innerHTML="";
-data.forEach(function(s){
-totalCount+=s.quantity;
-totalAmount+=s.quantity*s.price;
-tbody.innerHTML+=
-"<tr>"+
-"<td>"+s.saleId+"</td>"+
-"<td>"+s.customerName+"</td>"+
-"<td>"+s.productName+"</td>"+
-"<td>"+(s.description||"-")+"</td>"+
-"<td>"+(s.cellName||"-")+"</td>"+
-"<td>"+(s.warranty||"-")+"</td>"+
-"<td>"+s.quantity+"</td>"+
-"<td>₹"+s.price+"</td>"+
-"<td>"+s.paymentMethod+"</td>"+
-"<td>"+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</td>"+
-"<td>"+
-"<button onclick='printSingleSale("+s.saleId+")' class='print-btn'>Print</button> "+
-"<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
-"</td>"+
-"</tr>";
-});
-count.innerText=totalCount;
-amount.innerText=totalAmount.toFixed(2);
 }
 
 loadSales();
