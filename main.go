@@ -13,7 +13,7 @@ import (
 
 type Sale struct {
 	SaleID        int       `json:"saleId"`
-	ShopName      string    `json:"shopName"` // ✅ NEW
+	ShopName      string    `json:"shopName"`
 	CustomerName  string    `json:"customerName"`
 	ProductName   string    `json:"productName"`
 	Description   string    `json:"description"`
@@ -79,33 +79,46 @@ func ensureTables() {
 		created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`
+
 	_, err := db.Exec(query)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Auto fix existing DB
-	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS shop_name TEXT;`)
-	db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS description TEXT;`)
+	_, _ = db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS shop_name TEXT;`)
+	_, _ = db.Exec(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS description TEXT;`)
 }
 
 func getSales(w http.ResponseWriter, r *http.Request) {
 
-	rows, err := db.Query(`
-		SELECT sale_id, 
-		       COALESCE(shop_name,''), 
-		       customer_name, 
-		       product_name,
-		       COALESCE(description,''), 
-		       cell_name, 
-		       warranty, 
-		       quantity,
-		       price, 
-		       payment_method, 
-		       created_date
-		FROM sales
-		ORDER BY created_date DESC
-	`)
+	shop := r.URL.Query().Get("shop")
+
+	var rows *sql.Rows
+	var err error
+
+	if shop != "" {
+		rows, err = db.Query(`
+			SELECT sale_id, COALESCE(shop_name,''),
+			       customer_name, product_name,
+			       COALESCE(description,''),
+			       cell_name, warranty, quantity,
+			       price, payment_method, created_date
+			FROM sales
+			WHERE shop_name = $1
+			ORDER BY created_date DESC
+		`, shop)
+	} else {
+		rows, err = db.Query(`
+			SELECT sale_id, COALESCE(shop_name,''),
+			       customer_name, product_name,
+			       COALESCE(description,''),
+			       cell_name, warranty, quantity,
+			       price, payment_method, created_date
+			FROM sales
+			ORDER BY created_date DESC
+		`)
+	}
+
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -177,12 +190,29 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteSale(w http.ResponseWriter, r *http.Request) {
+
 	id := r.URL.Query().Get("id")
-	db.Exec("DELETE FROM sales WHERE sale_id=$1", id)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Deleted"})
+
+	_, err := db.Exec("DELETE FROM sales WHERE sale_id=$1", id)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Deleted",
+	})
 }
 
 func resetSales(w http.ResponseWriter, r *http.Request) {
-	db.Exec("TRUNCATE TABLE sales RESTART IDENTITY;")
-	json.NewEncoder(w).Encode(map[string]string{"message": "All Sales Reset"})
+
+	_, err := db.Exec("TRUNCATE TABLE sales RESTART IDENTITY;")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "All Sales Reset",
+	})
 }

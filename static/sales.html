@@ -51,8 +51,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 
 <div class="form-grid">
 
-<!-- 🔥 FIXED VALUE BASED DROPDOWN -->
-<select id="shopSelect">
+<select id="shopSelect" onchange="loadSales()">
 <option value="Gandhipark">Ayan Watch - Gandhipark Branch</option>
 <option value="KurnoolRoad">Ayan Watch - Kurnool Road Branch</option>
 </select>
@@ -109,15 +108,13 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 
 <div class="summary">
 <div class="box">
-Gandhipark Branch<br>
-Count: <span id="gpCount">0</span><br>
-Amount ₹ <span id="gpAmount">0</span>
+Total Sales Count<br>
+<span id="count">0</span>
 </div>
 
 <div class="box">
-Kurnool Road Branch<br>
-Count: <span id="krCount">0</span><br>
-Amount ₹ <span id="krAmount">0</span>
+Total Sales Amount ₹<br>
+<span id="amount">0.00</span>
 </div>
 </div>
 
@@ -148,6 +145,7 @@ Amount ₹ <span id="krAmount">0</span>
 let selectedProduct="";
 let cart=[];
 
+/* PRODUCTS */
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
 {name:"Gents Chain Watch",category:"watch",img:"./gents-chain.png"},
@@ -166,7 +164,7 @@ function filterCategory(cat){
 const grid=document.getElementById("productGrid");
 grid.innerHTML="";
 products.filter(p=>p.category===cat).forEach(function(p){
-grid.innerHTML +=
+grid.innerHTML+=
 '<div class="product" onclick="selectProduct(\''+p.name+'\',this)">'+
 '<img src="'+p.img+'">'+
 '<div>'+p.name+'</div>'+
@@ -179,73 +177,12 @@ function selectProduct(name,el){
 selectedProduct=name;
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
 if(el) el.classList.add("selected");
-setupCellDropdown(name);
 }
 
-function setupCellDropdown(product){
-const cell=document.getElementById("cellSelect");
-cell.innerHTML="";
-if(product==="Titan Cell"){
-cell.classList.remove("hidden");
-["521","626","621","721","920"].forEach(c=>cell.innerHTML+='<option>'+c+'</option>');
-}
-else if(product==="Watch Cell"){
-cell.classList.remove("hidden");
-["G1","626","521","621","721","920","2016","2025","2032","Others"]
-.forEach(c=>cell.innerHTML+='<option>'+c+'</option>');
-}
-else{
-cell.classList.add("hidden");
-}
-}
-
-function addToCart(){
-if(!selectedProduct){alert("Select product");return;}
-
-cart.push({
-product:selectedProduct,
-description:description.value,
-cell:cellSelect.classList.contains("hidden")?"":cellSelect.value,
-warranty:warrantySelect.value,
-qty:parseInt(quantity.value),
-price:parseFloat(price.value)
-});
-
-renderCart();
-clearForm();
-}
-
-function clearForm(){
-description.value="";
-quantity.value=1;
-price.value="";
-warrantySelect.value="";
-}
-
-function renderCart(){
-const body=document.getElementById("cartBody");
-body.innerHTML="";
-cart.forEach(function(item,index){
-body.innerHTML+=
-"<tr>"+
-"<td>"+item.product+"</td>"+
-"<td>"+(item.description||"-")+"</td>"+
-"<td>"+(item.cell||"-")+"</td>"+
-"<td>"+(item.warranty||"-")+"</td>"+
-"<td>"+item.qty+"</td>"+
-"<td>₹"+item.price+"</td>"+
-"<td><button onclick='removeCart("+index+")'>X</button></td>"+
-"</tr>";
-});
-}
-
-function removeCart(i){
-cart.splice(i,1);
-renderCart();
-}
-
+/* CONFIRM SALE */
 async function confirmSale(){
 if(cart.length===0){alert("Cart empty");return;}
+
 for(const item of cart){
 await fetch("/sales/create",{
 method:"POST",
@@ -269,23 +206,27 @@ customerName.value="";
 loadSales();
 }
 
+/* LOAD SALES (BRANCH FILTERED) */
 function loadSales(){
-fetch("/sales")
+fetch("/sales?shop=" + shopSelect.value)
 .then(r=>r.json())
-.then(function(data){
-renderFiltered(data);
-});
+.then(data=>renderTable(data));
 }
 
+/* DATE FILTER (BRANCH + DATE) */
 function filterByDate(){
 const date=document.getElementById("searchDate").value;
-fetch("/sales")
+
+fetch("/sales?shop=" + shopSelect.value)
 .then(r=>r.json())
 .then(function(data){
-const filtered=data.filter(s =>
-new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date);
-renderFiltered(filtered);
+
+const filtered=data.filter(function(s){
+return new Date(s.createdDate)
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date;
+});
+
+renderTable(filtered);
 });
 }
 
@@ -295,29 +236,23 @@ searchDate.value=new Date()
 filterByDate();
 }
 
-function renderFiltered(data){
+function renderTable(data){
 
-let gpCount=0,gpAmount=0,krCount=0,krAmount=0;
+let totalCount=0;
+let totalAmount=0;
 
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
 
 data.forEach(function(s){
 
-if(s.shopName && s.shopName.includes("Gandhipark")){
-gpCount+=s.quantity;
-gpAmount+=s.quantity*s.price;
-}
-
-if(s.shopName && s.shopName.includes("Kurnool")){
-krCount+=s.quantity;
-krAmount+=s.quantity*s.price;
-}
+totalCount+=s.quantity;
+totalAmount+=s.quantity*s.price;
 
 tbody.innerHTML+=
 "<tr>"+
 "<td>"+s.saleId+"</td>"+
-"<td>"+(s.shopName||"-")+"</td>"+
+"<td>"+s.shopName+"</td>"+
 "<td>"+s.customerName+"</td>"+
 "<td>"+s.productName+"</td>"+
 "<td>"+(s.description||"-")+"</td>"+
@@ -334,10 +269,8 @@ tbody.innerHTML+=
 "</tr>";
 });
 
-document.getElementById("gpCount").innerText=gpCount;
-document.getElementById("gpAmount").innerText=gpAmount.toFixed(2);
-document.getElementById("krCount").innerText=krCount;
-document.getElementById("krAmount").innerText=krAmount.toFixed(2);
+document.getElementById("count").innerText=totalCount;
+document.getElementById("amount").innerText=totalAmount.toFixed(2);
 }
 
 loadSales();
