@@ -23,10 +23,8 @@ th{background:#1f7ae0;color:white;}
 .print-btn{background:#ff9800;}
 .reset-btn{background:#f44336;}
 .hidden{display:none;}
-.barcode-box{position:fixed;top:15px;right:30px;z-index:999;}
-.barcode-box input{padding:8px;width:220px;}
 @media print{
-button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
+button,.tabs,.form-grid,.product-grid,#searchDate{display:none;}
 }
 </style>
 </head>
@@ -36,10 +34,6 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 <div class="container">
 
 <h2>Ayan Watch and Electronics - POS</h2>
-
-<div class="barcode-box">
-<input type="text" id="barcodeInput" placeholder="Scan Barcode Here" autofocus>
-</div>
 
 <div class="tabs">
 <button onclick="filterCategory('watch')">Watches</button>
@@ -107,15 +101,8 @@ button,.tabs,.form-grid,.product-grid,#searchDate,.barcode-box{display:none;}
 <button onclick="todaySales()">Today</button>
 
 <div class="summary">
-<div class="box">
-Total Sales Count<br>
-<span id="count">0</span>
-</div>
-
-<div class="box">
-Total Sales Amount ₹<br>
-<span id="amount">0.00</span>
-</div>
+<div class="box">Total Sales Count<br><span id="count">0</span></div>
+<div class="box">Total Sales Amount ₹<br><span id="amount">0.00</span></div>
 </div>
 
 <table>
@@ -145,7 +132,6 @@ Total Sales Amount ₹<br>
 let selectedProduct="";
 let cart=[];
 
-/* PRODUCTS */
 const products=[
 {name:"Gents Belt Watch",category:"watch",img:"./gents-belt.png"},
 {name:"Gents Chain Watch",category:"watch",img:"./gents-chain.png"},
@@ -179,10 +165,52 @@ document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"))
 if(el) el.classList.add("selected");
 }
 
-/* CONFIRM SALE */
+function addToCart(){
+if(!selectedProduct){alert("Select product");return;}
+
+cart.push({
+product:selectedProduct,
+description:description.value,
+cell:"",
+warranty:warrantySelect.value,
+qty:parseInt(quantity.value),
+price:parseFloat(price.value)
+});
+renderCart();
+clearForm();
+}
+
+function clearForm(){
+description.value="";
+quantity.value=1;
+price.value="";
+warrantySelect.value="";
+}
+
+function renderCart(){
+const body=document.getElementById("cartBody");
+body.innerHTML="";
+cart.forEach(function(item,index){
+body.innerHTML+=
+"<tr>"+
+"<td>"+item.product+"</td>"+
+"<td>"+(item.description||"-")+"</td>"+
+"<td>-</td>"+
+"<td>"+(item.warranty||"-")+"</td>"+
+"<td>"+item.qty+"</td>"+
+"<td>₹"+item.price+"</td>"+
+"<td><button onclick='removeCart("+index+")'>X</button></td>"+
+"</tr>";
+});
+}
+
+function removeCart(i){
+cart.splice(i,1);
+renderCart();
+}
+
 async function confirmSale(){
 if(cart.length===0){alert("Cart empty");return;}
-
 for(const item of cart){
 await fetch("/sales/create",{
 method:"POST",
@@ -192,7 +220,7 @@ shopName:shopSelect.value,
 customerName:customerName.value,
 productName:item.product,
 description:item.description,
-cellName:item.cell,
+cellName:"",
 warranty:item.warranty,
 quantity:item.qty,
 price:item.price,
@@ -206,26 +234,21 @@ customerName.value="";
 loadSales();
 }
 
-/* LOAD SALES (BRANCH FILTERED) */
 function loadSales(){
 fetch("/sales?shop=" + shopSelect.value)
 .then(r=>r.json())
 .then(data=>renderTable(data));
 }
 
-/* DATE FILTER (BRANCH + DATE) */
 function filterByDate(){
 const date=document.getElementById("searchDate").value;
-
 fetch("/sales?shop=" + shopSelect.value)
 .then(r=>r.json())
 .then(function(data){
-
 const filtered=data.filter(function(s){
 return new Date(s.createdDate)
 .toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===date;
 });
-
 renderTable(filtered);
 });
 }
@@ -237,18 +260,13 @@ filterByDate();
 }
 
 function renderTable(data){
-
 let totalCount=0;
 let totalAmount=0;
-
 const tbody=document.getElementById("salesBody");
 tbody.innerHTML="";
-
 data.forEach(function(s){
-
 totalCount+=s.quantity;
 totalAmount+=s.quantity*s.price;
-
 tbody.innerHTML+=
 "<tr>"+
 "<td>"+s.saleId+"</td>"+
@@ -263,14 +281,12 @@ tbody.innerHTML+=
 "<td>"+s.paymentMethod+"</td>"+
 "<td>"+new Date(s.createdDate).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+"</td>"+
 "<td>"+
-"<button onclick='printSingleSale("+s.saleId+")' class='print-btn'>Print</button> "+
 "<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
 "</td>"+
 "</tr>";
 });
-
-document.getElementById("count").innerText=totalCount;
-document.getElementById("amount").innerText=totalAmount.toFixed(2);
+count.innerText=totalCount;
+amount.innerText=totalAmount.toFixed(2);
 }
 
 loadSales();
