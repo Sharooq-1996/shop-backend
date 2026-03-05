@@ -24,7 +24,7 @@ th{background:#1f7ae0;color:white;}
 .reset-btn{background:#f44336;}
 .hidden{display:none;}
 @media print{
-button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:none;}
+button,.tabs,.form-grid,.product-grid,#searchDate,#searchMonth,#reportBranchFilter{display:none;}
 }
 </style>
 </head>
@@ -64,14 +64,15 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:no
 <input id="quantity" type="number" value="1">
 <input id="price" type="number" placeholder="Enter Price">
 
-<!-- NEW FIELD (Backdated Sales Support) -->
-<input id="saleDate" type="date" title="Optional: Add yesterday sales">
+<!-- Backdated sale option -->
+<input id="saleDate" type="date">
 
 <select id="paymentMethod">
 <option>Cash</option>
 <option>UPI</option>
 <option>Card</option>
 </select>
+
 </div>
 
 <button onclick="addToCart()">Add To Cart</button>
@@ -80,6 +81,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:no
 <button onclick="resetAll()" class="reset-btn">Reset All</button>
 
 <h3>Cart</h3>
+
 <table>
 <thead>
 <tr>
@@ -92,7 +94,9 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:no
 <th>Remove</th>
 </tr>
 </thead>
+
 <tbody id="cartBody"></tbody>
+
 </table>
 
 <hr>
@@ -103,6 +107,10 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:no
 <button onclick="applyFilters()">Search</button>
 <button onclick="todaySales()">Today</button>
 
+<!-- Month Filter -->
+<input type="month" id="searchMonth">
+<button onclick="filterByMonth()">Month</button>
+
 <select id="reportBranchFilter" onchange="applyFilters()">
 <option value="All">All Branches</option>
 <option value="Gandhipark">Gandhipark Branch</option>
@@ -110,6 +118,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:no
 </select>
 
 <div class="summary">
+
 <div class="box">
 Gandhipark Branch<br>
 Count: <span id="gpCount">0</span><br>
@@ -121,10 +130,13 @@ Kurnool Road Branch<br>
 Count: <span id="krCount">0</span><br>
 Amount ₹ <span id="krAmount">0.00</span>
 </div>
+
 </div>
 
 <table>
+
 <thead>
+
 <tr>
 <th>ID</th>
 <th>Branch</th>
@@ -139,8 +151,11 @@ Amount ₹ <span id="krAmount">0.00</span>
 <th>Date</th>
 <th>Action</th>
 </tr>
+
 </thead>
+
 <tbody id="salesBody"></tbody>
+
 </table>
 
 </div>
@@ -166,28 +181,39 @@ const products=[
 ];
 
 function filterCategory(cat){
+
 const grid=document.getElementById("productGrid");
+
 grid.innerHTML="";
+
 products.filter(p=>p.category===cat).forEach(function(p){
+
 grid.innerHTML+=
 '<div class="product" onclick="selectProduct(\''+p.name+'\',this)">'+
 '<img src="'+p.img+'">'+
 '<div>'+p.name+'</div>'+
 '</div>';
+
 });
+
 }
+
 filterCategory("watch");
 
 function selectProduct(name,el){
+
 selectedProduct=name;
 
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
+
 if(el) el.classList.add("selected");
 
 const cellSelect=document.getElementById("cellSelect");
 
 if(name==="Watch Cell"){
+
 cellSelect.classList.remove("hidden");
+
 cellSelect.innerHTML=`
 <option value="">Select Watch Cell</option>
 <option>G1</option>
@@ -201,9 +227,13 @@ cellSelect.innerHTML=`
 <option>2032</option>
 <option>Others</option>
 `;
+
 }
+
 else if(name==="Titan Cell"){
+
 cellSelect.classList.remove("hidden");
+
 cellSelect.innerHTML=`
 <option value="">Select Titan Cell</option>
 <option>521</option>
@@ -213,41 +243,57 @@ cellSelect.innerHTML=`
 <option>920</option>
 <option>Others</option>
 `;
+
 }
+
 else{
+
 cellSelect.classList.add("hidden");
 cellSelect.innerHTML="";
+
 }
+
 }
 
 function addToCart(){
+
 if(!selectedProduct){alert("Select product");return;}
 
 cart.push({
+
 product:selectedProduct,
 description:description.value,
 cell:cellSelect.value,
 warranty:warrantySelect.value,
 qty:parseInt(quantity.value),
 price:parseFloat(price.value)
+
 });
 
 renderCart();
+
 clearForm();
+
 }
 
 function clearForm(){
+
 description.value="";
 quantity.value=1;
 price.value="";
 warrantySelect.value="";
 cellSelect.value="";
+
 }
 
 function renderCart(){
+
 const body=document.getElementById("cartBody");
+
 body.innerHTML="";
+
 cart.forEach(function(item,index){
+
 body.innerHTML+=
 "<tr>"+
 "<td>"+item.product+"</td>"+
@@ -258,12 +304,16 @@ body.innerHTML+=
 "<td>₹"+item.price+"</td>"+
 "<td><button onclick='removeCart("+index+")'>X</button></td>"+
 "</tr>";
+
 });
+
 }
 
 function removeCart(i){
+
 cart.splice(i,1);
 renderCart();
+
 }
 
 async function confirmSale(){
@@ -275,8 +325,11 @@ const manualDate=document.getElementById("saleDate").value;
 for(const item of cart){
 
 await fetch("/sales/create",{
+
 method:"POST",
+
 headers:{"Content-Type":"application/json"},
+
 body:JSON.stringify({
 
 shopName:shopSelect.value,
@@ -288,10 +341,10 @@ warranty:item.warranty,
 quantity:item.qty,
 price:item.price,
 paymentMethod:paymentMethod.value,
-
 saleDate:manualDate || null
 
 })
+
 });
 
 }
@@ -302,15 +355,20 @@ customerName.value="";
 document.getElementById("saleDate").value="";
 
 loadSales();
+
 }
 
 function loadSales(){
+
 fetch("/sales")
 .then(r=>r.json())
 .then(function(data){
+
 allSalesData=data;
 applyFilters();
+
 });
+
 }
 
 function applyFilters(){
@@ -321,7 +379,9 @@ const branchFilter=document.getElementById("reportBranchFilter").value;
 const dateFilter=document.getElementById("searchDate").value;
 
 if(branchFilter!=="All"){
+
 filtered=filtered.filter(s=>s.shopName===branchFilter);
+
 }
 
 if(dateFilter){
@@ -337,6 +397,28 @@ return saleDate===dateFilter.trim();
 });
 
 }
+
+renderTable(filtered);
+
+}
+
+function filterByMonth(){
+
+const month=document.getElementById("searchMonth").value;
+
+if(!month){alert("Select month");return;}
+
+let filtered=[...allSalesData];
+
+filtered=filtered.filter(function(s){
+
+const saleMonth=new Date(s.createdDate)
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})
+.substring(0,7);
+
+return saleMonth===month;
+
+});
 
 renderTable(filtered);
 
@@ -360,18 +442,23 @@ let gpCountVal=0,gpAmountVal=0;
 let krCountVal=0,krAmountVal=0;
 
 const tbody=document.getElementById("salesBody");
+
 tbody.innerHTML="";
 
 data.forEach(function(s){
 
 if(s.shopName==="Gandhipark"){
+
 gpCountVal+=s.quantity;
 gpAmountVal+=s.quantity*s.price;
+
 }
 
 if(s.shopName==="KurnoolRoad"){
+
 krCountVal+=s.quantity;
 krAmountVal+=s.quantity*s.price;
+
 }
 
 tbody.innerHTML+=
@@ -399,6 +486,7 @@ document.getElementById("gpCount").innerText=gpCountVal;
 document.getElementById("gpAmount").innerText=gpAmountVal.toFixed(2);
 document.getElementById("krCount").innerText=krCountVal;
 document.getElementById("krAmount").innerText=krAmountVal.toFixed(2);
+
 }
 
 function printSingleSale(id){
@@ -426,13 +514,19 @@ w.document.close();
 }
 
 function deleteSale(id){
+
 fetch("/sales/delete?id="+id).then(loadSales);
+
 }
 
 function resetAll(){
+
 if(confirm("Delete all data?")){
+
 fetch("/sales/reset",{method:"POST"}).then(loadSales);
+
 }
+
 }
 
 function printAll(){window.print();}
