@@ -64,6 +64,9 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#reportBranchFilter{display:no
 <input id="quantity" type="number" value="1">
 <input id="price" type="number" placeholder="Enter Price">
 
+<!-- NEW FIELD (Backdated Sales Support) -->
+<input id="saleDate" type="date" title="Optional: Add yesterday sales">
+
 <select id="paymentMethod">
 <option>Cash</option>
 <option>UPI</option>
@@ -264,13 +267,18 @@ renderCart();
 }
 
 async function confirmSale(){
+
 if(cart.length===0){alert("Cart empty");return;}
 
+const manualDate=document.getElementById("saleDate").value;
+
 for(const item of cart){
+
 await fetch("/sales/create",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
+
 shopName:shopSelect.value,
 customerName:customerName.value,
 productName:item.product,
@@ -279,14 +287,20 @@ cellName:item.cell,
 warranty:item.warranty,
 quantity:item.qty,
 price:item.price,
-paymentMethod:paymentMethod.value
+paymentMethod:paymentMethod.value,
+
+saleDate:manualDate || null
+
 })
 });
+
 }
 
 cart=[];
 renderCart();
 customerName.value="";
+document.getElementById("saleDate").value="";
+
 loadSales();
 }
 
@@ -300,6 +314,7 @@ applyFilters();
 }
 
 function applyFilters(){
+
 let filtered=[...allSalesData];
 
 const branchFilter=document.getElementById("reportBranchFilter").value;
@@ -310,17 +325,33 @@ filtered=filtered.filter(s=>s.shopName===branchFilter);
 }
 
 if(dateFilter){
-filtered=filtered.filter(s=>
-new Date(s.createdDate).toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===dateFilter
-);
+
+filtered=filtered.filter(function(s){
+
+const saleDate=new Date(s.createdDate)
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})
+.trim();
+
+return saleDate===dateFilter.trim();
+
+});
+
 }
 
 renderTable(filtered);
+
 }
 
 function todaySales(){
-searchDate.value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+
+const today=new Date()
+.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})
+.trim();
+
+document.getElementById("searchDate").value=today;
+
 applyFilters();
+
 }
 
 function renderTable(data){
@@ -337,6 +368,7 @@ if(s.shopName==="Gandhipark"){
 gpCountVal+=s.quantity;
 gpAmountVal+=s.quantity*s.price;
 }
+
 if(s.shopName==="KurnoolRoad"){
 krCountVal+=s.quantity;
 krAmountVal+=s.quantity*s.price;
@@ -360,6 +392,7 @@ tbody.innerHTML+=
 "<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
 "</td>"+
 "</tr>";
+
 });
 
 document.getElementById("gpCount").innerText=gpCountVal;
@@ -369,10 +402,13 @@ document.getElementById("krAmount").innerText=krAmountVal.toFixed(2);
 }
 
 function printSingleSale(id){
+
 const s=allSalesData.find(x=>x.saleId===id);
-if(!s) return;
+
+if(!s)return;
 
 const w=window.open("","_blank","width=400,height=600");
+
 w.document.write(
 "<h3 style='text-align:center'>Ayan Watch and Electronics</h3>"+
 "<p><b>Branch:</b> "+s.shopName+"</p>"+
@@ -384,7 +420,9 @@ w.document.write(
 "<p><b>Total:</b> ₹"+(s.quantity*s.price).toFixed(2)+"</p>"+
 "<script>window.print();<\/script>"
 );
+
 w.document.close();
+
 }
 
 function deleteSale(id){
