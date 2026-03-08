@@ -133,7 +133,6 @@ Amount ₹ <span id="krAmount">0.00</span>
 <table>
 
 <thead>
-
 <tr>
 <th>ID</th>
 <th>Branch</th>
@@ -148,7 +147,6 @@ Amount ₹ <span id="krAmount">0.00</span>
 <th>Date</th>
 <th>Action</th>
 </tr>
-
 </thead>
 
 <tbody id="salesBody"></tbody>
@@ -327,13 +325,7 @@ filtered=filtered.filter(s=>s.shopName===branchFilter);
 }
 
 if(dateFilter){
-filtered=filtered.filter(function(s){
-const d=new Date(s.createdDate);
-const y=d.getFullYear();
-const m=String(d.getMonth()+1).padStart(2,'0');
-const day=String(d.getDate()).padStart(2,'0');
-return `${y}-${m}-${day}`===dateFilter;
-});
+filtered=filtered.filter(s=>s.createdDate.substring(0,10)===dateFilter);
 }
 
 renderTable(filtered);
@@ -345,22 +337,14 @@ if(!month){alert("Select month");return;}
 
 let filtered=[...allSalesData];
 
-filtered=filtered.filter(function(s){
-const d=new Date(s.createdDate);
-const y=d.getFullYear();
-const m=String(d.getMonth()+1).padStart(2,'0');
-return `${y}-${m}`===month;
-});
+filtered=filtered.filter(s=>s.createdDate.substring(0,7)===month);
 
 renderTable(filtered);
 }
 
 function todaySales(){
-const d=new Date();
-const y=d.getFullYear();
-const m=String(d.getMonth()+1).padStart(2,'0');
-const day=String(d.getDate()).padStart(2,'0');
-document.getElementById("searchDate").value=`${y}-${m}-${day}`;
+const today=new Date().toISOString().substring(0,10);
+document.getElementById("searchDate").value=today;
 applyFilters();
 }
 
