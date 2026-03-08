@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
 <title>Sales - Ayan Watch and Electronics</title>
@@ -27,6 +28,7 @@ th{background:#1f7ae0;color:white;}
 button,.tabs,.form-grid,.product-grid,#searchDate,#searchMonth,#reportBranchFilter{display:none;}
 }
 </style>
+
 </head>
 
 <body>
@@ -64,7 +66,6 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#searchMonth,#reportBranchFilt
 <input id="quantity" type="number" value="1">
 <input id="price" type="number" placeholder="Enter Price">
 
-<!-- Backdated sale option -->
 <input id="saleDate" type="date">
 
 <select id="paymentMethod">
@@ -75,10 +76,7 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#searchMonth,#reportBranchFilt
 
 </div>
 
-<button onclick="addToCart()">Add To Cart</button>
-<button onclick="confirmSale()">Confirm Sale</button>
-<button onclick="printAll()" class="print-btn">Print Bill</button>
-<button onclick="resetAll()" class="reset-btn">Reset All</button>
+<button onclick="addToCart()">Add To Cart</button> <button onclick="confirmSale()">Confirm Sale</button> <button onclick="printAll()" class="print-btn">Print Bill</button> <button onclick="resetAll()" class="reset-btn">Reset All</button>
 
 <h3>Cart</h3>
 
@@ -107,7 +105,6 @@ button,.tabs,.form-grid,.product-grid,#searchDate,#searchMonth,#reportBranchFilt
 <button onclick="applyFilters()">Search</button>
 <button onclick="todaySales()">Today</button>
 
-<!-- Month Filter -->
 <input type="month" id="searchMonth">
 <button onclick="filterByMonth()">Month</button>
 
@@ -181,39 +178,27 @@ const products=[
 ];
 
 function filterCategory(cat){
-
 const grid=document.getElementById("productGrid");
-
 grid.innerHTML="";
-
 products.filter(p=>p.category===cat).forEach(function(p){
-
 grid.innerHTML+=
 '<div class="product" onclick="selectProduct(\''+p.name+'\',this)">'+
 '<img src="'+p.img+'">'+
 '<div>'+p.name+'</div>'+
 '</div>';
-
 });
-
 }
-
 filterCategory("watch");
 
 function selectProduct(name,el){
-
 selectedProduct=name;
-
 document.querySelectorAll(".product").forEach(p=>p.classList.remove("selected"));
-
 if(el) el.classList.add("selected");
 
 const cellSelect=document.getElementById("cellSelect");
 
 if(name==="Watch Cell"){
-
 cellSelect.classList.remove("hidden");
-
 cellSelect.innerHTML=`
 <option value="">Select Watch Cell</option>
 <option>G1</option>
@@ -225,15 +210,10 @@ cellSelect.innerHTML=`
 <option>2016</option>
 <option>2025</option>
 <option>2032</option>
-<option>Others</option>
-`;
-
+<option>Others</option>`;
 }
-
 else if(name==="Titan Cell"){
-
 cellSelect.classList.remove("hidden");
-
 cellSelect.innerHTML=`
 <option value="">Select Titan Cell</option>
 <option>521</option>
@@ -241,59 +221,43 @@ cellSelect.innerHTML=`
 <option>621</option>
 <option>721</option>
 <option>920</option>
-<option>Others</option>
-`;
-
+<option>Others</option>`;
 }
-
 else{
-
 cellSelect.classList.add("hidden");
 cellSelect.innerHTML="";
-
 }
-
 }
 
 function addToCart(){
-
 if(!selectedProduct){alert("Select product");return;}
 
 cart.push({
-
 product:selectedProduct,
 description:description.value,
 cell:cellSelect.value,
 warranty:warrantySelect.value,
 qty:parseInt(quantity.value),
 price:parseFloat(price.value)
-
 });
 
 renderCart();
-
 clearForm();
-
 }
 
 function clearForm(){
-
 description.value="";
 quantity.value=1;
 price.value="";
 warrantySelect.value="";
 cellSelect.value="";
-
 }
 
 function renderCart(){
-
 const body=document.getElementById("cartBody");
-
 body.innerHTML="";
 
 cart.forEach(function(item,index){
-
 body.innerHTML+=
 "<tr>"+
 "<td>"+item.product+"</td>"+
@@ -304,34 +268,24 @@ body.innerHTML+=
 "<td>₹"+item.price+"</td>"+
 "<td><button onclick='removeCart("+index+")'>X</button></td>"+
 "</tr>";
-
 });
-
 }
 
 function removeCart(i){
-
 cart.splice(i,1);
 renderCart();
-
 }
 
 async function confirmSale(){
-
 if(cart.length===0){alert("Cart empty");return;}
 
 const manualDate=document.getElementById("saleDate").value;
 
 for(const item of cart){
-
 await fetch("/sales/create",{
-
 method:"POST",
-
 headers:{"Content-Type":"application/json"},
-
 body:JSON.stringify({
-
 shopName:shopSelect.value,
 customerName:customerName.value,
 productName:item.product,
@@ -342,98 +296,72 @@ quantity:item.qty,
 price:item.price,
 paymentMethod:paymentMethod.value,
 saleDate:manualDate || null
-
 })
-
 });
-
 }
 
 cart=[];
 renderCart();
 customerName.value="";
 document.getElementById("saleDate").value="";
-
 loadSales();
-
 }
 
 function loadSales(){
-
 fetch("/sales")
 .then(r=>r.json())
 .then(function(data){
-
 allSalesData=data;
 applyFilters();
-
 });
-
 }
 
 function applyFilters(){
-
 let filtered=[...allSalesData];
 
 const branchFilter=document.getElementById("reportBranchFilter").value;
 const dateFilter=document.getElementById("searchDate").value;
 
 if(branchFilter!=="All"){
-
 filtered=filtered.filter(s=>s.shopName===branchFilter);
-
 }
 
 if(dateFilter){
-
 filtered=filtered.filter(function(s){
-
-const saleDate=new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})
-.trim();
-
-return saleDate===dateFilter.trim();
-
+const d=new Date(s.createdDate);
+const y=d.getFullYear();
+const m=String(d.getMonth()+1).padStart(2,'0');
+const day=String(d.getDate()).padStart(2,'0');
+return `${y}-${m}-${day}`===dateFilter;
 });
-
 }
 
 renderTable(filtered);
-
 }
 
 function filterByMonth(){
-
 const month=document.getElementById("searchMonth").value;
-
 if(!month){alert("Select month");return;}
 
 let filtered=[...allSalesData];
 
 filtered=filtered.filter(function(s){
-
-const saleMonth=new Date(s.createdDate)
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})
-.substring(0,7);
-
-return saleMonth===month;
-
+const d=new Date(s.createdDate);
+const y=d.getFullYear();
+const m=String(d.getMonth()+1).padStart(2,'0');
+return `${y}-${m}`===month;
 });
 
 renderTable(filtered);
-
 }
 
 function todaySales(){
-
-const today=new Date()
-.toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})
-.trim();
-
-document.getElementById("searchDate").value=today;
-
+const d=new Date();
+const y=d.getFullYear();
+const m=String(d.getMonth()+1).padStart(2,'0');
+const day=String(d.getDate()).padStart(2,'0');
+document.getElementById("searchDate").value=`${y}-${m}-${day}`;
 applyFilters();
-
 }
 
 function renderTable(data){
@@ -442,23 +370,17 @@ let gpCountVal=0,gpAmountVal=0;
 let krCountVal=0,krAmountVal=0;
 
 const tbody=document.getElementById("salesBody");
-
 tbody.innerHTML="";
 
 data.forEach(function(s){
 
 if(s.shopName==="Gandhipark"){
-
 gpCountVal+=s.quantity;
 gpAmountVal+=s.quantity*s.price;
-
 }
-
 if(s.shopName==="KurnoolRoad"){
-
 krCountVal+=s.quantity;
 krAmountVal+=s.quantity*s.price;
-
 }
 
 tbody.innerHTML+=
@@ -479,20 +401,16 @@ tbody.innerHTML+=
 "<button onclick='deleteSale("+s.saleId+")'>Delete</button>"+
 "</td>"+
 "</tr>";
-
 });
 
 document.getElementById("gpCount").innerText=gpCountVal;
 document.getElementById("gpAmount").innerText=gpAmountVal.toFixed(2);
 document.getElementById("krCount").innerText=krCountVal;
 document.getElementById("krAmount").innerText=krAmountVal.toFixed(2);
-
 }
 
 function printSingleSale(id){
-
 const s=allSalesData.find(x=>x.saleId===id);
-
 if(!s)return;
 
 const w=window.open("","_blank","width=400,height=600");
@@ -510,23 +428,16 @@ w.document.write(
 );
 
 w.document.close();
-
 }
 
 function deleteSale(id){
-
 fetch("/sales/delete?id="+id).then(loadSales);
-
 }
 
 function resetAll(){
-
 if(confirm("Delete all data?")){
-
 fetch("/sales/reset",{method:"POST"}).then(loadSales);
-
 }
-
 }
 
 function printAll(){window.print();}
@@ -534,5 +445,6 @@ function printAll(){window.print();}
 loadSales();
 
 </script>
+
 </body>
 </html>
