@@ -13,7 +13,7 @@ import (
 
 type Sale struct {
 	SaleID        int       `json:"saleId"`
-	ShopName      string    `json:"shopName"` // ✅ Added
+	ShopName      string    `json:"shopName"`
 	CustomerName  string    `json:"customerName"`
 	ProductName   string    `json:"productName"`
 	Description   string    `json:"description"`
@@ -23,6 +23,9 @@ type Sale struct {
 	Price         float64   `json:"price"`
 	PaymentMethod string    `json:"paymentMethod"`
 	CreatedDate   time.Time `json:"createdDate"`
+
+	// ✅ Added for backdated sales
+	SaleDate string `json:"saleDate"`
 }
 
 var db *sql.DB
@@ -163,6 +166,23 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 	var sale Sale
 	json.NewDecoder(r.Body).Decode(&sale)
 
+	// ✅ Backdated sale support
+	var createdDate time.Time
+
+	if sale.SaleDate != "" {
+
+		parsedDate, err := time.Parse("2006-01-02", sale.SaleDate)
+
+		if err == nil {
+			createdDate = parsedDate
+		} else {
+			createdDate = time.Now()
+		}
+
+	} else {
+		createdDate = time.Now()
+	}
+
 	_, err := db.Exec(`
 		INSERT INTO sales (
 			shop_name,
@@ -173,9 +193,10 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 			warranty,
 			quantity,
 			price,
-			payment_method
+			payment_method,
+			created_date
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 	`,
 		sale.ShopName,
 		sale.CustomerName,
@@ -186,6 +207,7 @@ func createSale(w http.ResponseWriter, r *http.Request) {
 		sale.Quantity,
 		sale.Price,
 		sale.PaymentMethod,
+		createdDate,
 	)
 
 	if err != nil {
